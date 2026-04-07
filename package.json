@@ -104,6 +104,6 @@
     "@typescript-eslint/typescript-estree": "^8.5.0",
     "postcss": "^8.4.31",
     "eslint-config-next": "^15.0.0",
-    "eslint": "^9.0.0"
+    "eslint": "^8.50.0"
   }
 }
