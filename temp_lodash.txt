@@ -1,0 +1,2 @@
+node_modules/lodash: 4.17.21
+node_modules/lodash.merge: 4.6.2
