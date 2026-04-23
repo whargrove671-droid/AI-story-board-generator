@@ -7,8 +7,12 @@ export async function POST(request: NextRequest) {
     apiKey: process.env.OPENAI_API_KEY || "dummy",
   });
 
+  let storyId: string | undefined;
+
   try {
-    const { storyIdea, storyId } = await request.json();
+    const body = await request.json();
+    const storyIdea = body.storyIdea;
+    storyId = body.storyId;
 
     if (!storyIdea || !storyId) {
       return NextResponse.json(
@@ -126,6 +130,31 @@ Rules:
     });
   } catch (error: any) {
     console.error('Error generating story:', error);
+    
+    // Fallback to update story status to failed so it doesn't get stuck in generating
+    if (storyId) {
+      try {
+        const supabaseFallback = createServerClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+          {
+            cookies: {
+              getAll() {
+                return request.cookies.getAll();
+              },
+              setAll() {},
+            },
+          }
+        );
+        await supabaseFallback
+          .from('stories')
+          .update({ status: 'failed' })
+          .eq('id', storyId);
+      } catch (e) {
+        console.error('Failed to update story status to failed:', e);
+      }
+    }
+
     return NextResponse.json(
       { error: error.message || 'Failed to generate story' },
       { status: 500 }
