@@ -123,11 +123,22 @@ export default function DashboardPage() {
 
       toast({
         title: 'Success',
-        description: 'Story generation started! Images will be generated shortly.',
+        description: 'Story text generated! Now generating images...',
       });
 
       setStoryIdea('');
       loadStories();
+
+      // Trigger image generation from the client to prevent server timeout/kill
+      fetch('/api/generate-images', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ storyId: story.id }),
+      }).then(() => {
+        loadStories();
+      }).catch((err) => {
+        console.error('Failed to trigger image generation:', err);
+      });
     } catch (error: any) {
       toast({
         title: 'Error',
