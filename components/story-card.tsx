@@ -98,18 +98,16 @@ export function StoryCard({ story, onRefresh }: StoryCardProps) {
           </div>
           <div className="flex flex-col items-end gap-2">
             {getStatusBadge(story.status)}
-            {(story.status === 'failed' || story.status === 'generating') && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleDelete} 
-                disabled={isDeleting}
-                className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50"
-              >
-                {isDeleting ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Trash2 className="h-4 w-4 mr-1" />}
-                Cancel & Delete
-              </Button>
-            )}
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleDelete} 
+              disabled={isDeleting}
+              className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50"
+            >
+              {isDeleting ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Trash2 className="h-4 w-4 mr-1" />}
+              {story.status === 'failed' || story.status === 'generating' || story.scenes.some(s => s.image_status === 'failed' || s.image_status === 'generating') ? 'Cancel & Delete' : 'Delete'}
+            </Button>
           </div>
         </div>
       </CardHeader>
