@@ -130,6 +130,7 @@ export async function POST(request: NextRequest) {
     await supabase.from('stories').update({ status: 'compiling_video' }).eq('id', storyId);
 
     const segmentPaths: string[] = [];
+    const downloadedImages = new Map<string, string>();
     let lastImageURL = scenes[0].image_url;
 
     // Build segments
@@ -138,12 +139,18 @@ export async function POST(request: NextRequest) {
       if (scene.image_url) lastImageURL = scene.image_url;
       if (!lastImageURL) throw new Error(`Missing image for scene ${scene.scene_number}`);
 
-      const imgPath = path.join(tmpDir, `image_${i}.jpg`);
+      let imgPath = downloadedImages.get(lastImageURL);
+      if (!imgPath) {
+        imgPath = path.join(tmpDir, `image_${i}.jpg`);
+        console.log(`Downloading image for scene ${scene.scene_number}...`);
+        await downloadFile(lastImageURL, imgPath);
+        downloadedImages.set(lastImageURL, imgPath);
+      }
+
       const audioPath = path.join(tmpDir, `audio_${i}.mp3`);
       const outPath = path.join(tmpDir, `segment_${i}.mp4`);
 
-      console.log(`Downloading assets for scene ${scene.scene_number}...`);
-      await downloadFile(lastImageURL, imgPath);
+      console.log(`Downloading audio for scene ${scene.scene_number}...`);
       await downloadFile(scene.audio_url, audioPath);
 
       console.log(`Rendering segment ${scene.scene_number}...`);

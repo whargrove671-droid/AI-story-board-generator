@@ -45,6 +45,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const imageInterval = storyLength >= 120 ? 6 : 4;
+    const intervalExample = storyLength >= 120 
+      ? '(i.e., Scene 1, Scene 7, Scene 13, etc.)' 
+      : '(i.e., Scene 1, Scene 5, Scene 9, Scene 13, etc.)';
+
     const prompt = `You are a creative storytelling AI. Given a story idea, create a detailed ${storyLength}-scene narrative.
 
 Story Idea: "${storyIdea}"
@@ -53,7 +58,7 @@ Return exactly ${storyLength} scenes.
 
 Rules:
 - Each scene should be 3-4 sentences
-- Provide a detailed, cinematic \`imagePrompt\` ONLY for the first scene in every group of 4 scenes (i.e., Scene 1, Scene 5, Scene 9, Scene 13, etc.).
+- Provide a detailed, cinematic \`imagePrompt\` ONLY for the first scene in every group of ${imageInterval} scenes ${intervalExample}.
 - For all other scenes, the \`imagePrompt\` MUST be an empty string "".
 - Keep the story cohesive across all ${storyLength} scenes
 - Make scenes cinematic and engaging

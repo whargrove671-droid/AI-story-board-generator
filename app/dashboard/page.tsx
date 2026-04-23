@@ -232,6 +232,7 @@ export default function DashboardPage() {
                     <SelectContent>
                       <SelectItem value="5">Short (5 Scenes, 5 Images)</SelectItem>
                       <SelectItem value="20">Medium (20 Scenes, 5 Images)</SelectItem>
+                      <SelectItem value="120">1 Hour (120 Scenes, Sparse Images)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
