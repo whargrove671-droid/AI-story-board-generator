@@ -16,6 +16,7 @@ type Scene = {
   image_prompt: string;
   image_url: string | null;
   image_status: string;
+  audio_url?: string | null;
 };
 
 type Story = {
@@ -23,6 +24,7 @@ type Story = {
   title: string;
   status: string;
   created_at: string;
+  video_url?: string | null;
   scenes: Scene[];
 };
 
@@ -34,8 +36,48 @@ interface StoryCardProps {
 export function StoryCard({ story, onRefresh }: StoryCardProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
   const supabase = createClient();
   const { toast } = useToast();
+
+  const handleGenerateVideo = async () => {
+    try {
+      setIsGeneratingVideo(true);
+      toast({ title: 'Generating Audio', description: 'Generating narration for scenes...' });
+      
+      const audioResponse = await fetch('/api/generate-audio', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ storyId: story.id }),
+      });
+      if (!audioResponse.ok) {
+        const err = await audioResponse.json();
+        throw new Error(err.error || 'Failed to generate audio');
+      }
+
+      toast({ title: 'Compiling Video', description: 'Merging images and audio. This may take a minute...' });
+      
+      // Update local status so UI shows it's compiling
+      onRefresh();
+
+      const videoResponse = await fetch('/api/compile-video', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ storyId: story.id }),
+      });
+      if (!videoResponse.ok) {
+        const err = await videoResponse.json();
+        throw new Error(err.error || 'Failed to compile video');
+      }
+
+      toast({ title: 'Success', description: 'Video generated successfully!' });
+      onRefresh();
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message || 'Failed to generate video', variant: 'destructive' });
+    } finally {
+      setIsGeneratingVideo(false);
+    }
+  };
 
   const handleRetryImages = async () => {
     try {
@@ -97,7 +139,14 @@ export function StoryCard({ story, onRefresh }: StoryCardProps) {
         return (
           <Badge variant="default" className="bg-blue-500">
             <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-            Generating
+            Generating Text & Images
+          </Badge>
+        );
+      case 'compiling_video':
+        return (
+          <Badge variant="default" className="bg-purple-500">
+            <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+            Compiling Video
           </Badge>
         );
       case 'failed':
@@ -113,7 +162,9 @@ export function StoryCard({ story, onRefresh }: StoryCardProps) {
   };
 
   const hasStuckScenes = story.scenes.some(s => s.image_status === 'pending' || s.image_status === 'failed');
-  const isGenerating = story.scenes.some(s => s.image_status === 'generating');
+  const isGeneratingImages = story.scenes.some(s => s.image_status === 'generating');
+  const allImagesDone = story.scenes.length > 0 && story.scenes.every(s => s.image_status === 'completed' || s.image_status === 'skipped');
+  const canGenerateVideo = allImagesDone && !story.video_url && story.status !== 'compiling_video';
 
   return (
     <Card className="shadow-lg overflow-hidden">
@@ -129,7 +180,19 @@ export function StoryCard({ story, onRefresh }: StoryCardProps) {
           <div className="flex flex-col items-end gap-2">
             {getStatusBadge(story.status)}
             <div className="flex items-center gap-2">
-              {hasStuckScenes && !isGenerating && (
+              {canGenerateVideo && (
+                <Button 
+                  variant="default" 
+                  size="sm" 
+                  onClick={handleGenerateVideo} 
+                  disabled={isGeneratingVideo}
+                  className="bg-purple-600 hover:bg-purple-700 text-white"
+                >
+                  {isGeneratingVideo ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <AlertCircle className="h-4 w-4 mr-1 hidden" />}
+                  Generate Video
+                </Button>
+              )}
+              {hasStuckScenes && !isGeneratingImages && (
                 <Button 
                   variant="outline" 
                   size="sm" 
@@ -155,6 +218,19 @@ export function StoryCard({ story, onRefresh }: StoryCardProps) {
         </div>
       </CardHeader>
       <CardContent className="p-6">
+        {story.video_url && (
+          <div className="mb-8 p-4 bg-slate-900 rounded-xl shadow-inner">
+            <h3 className="text-white text-lg font-semibold mb-4 flex items-center gap-2">
+              <span className="text-purple-400">🎬</span> Final Generated Video
+            </h3>
+            <video 
+              src={story.video_url} 
+              controls 
+              className="w-full aspect-video rounded-lg shadow-lg bg-black"
+            />
+          </div>
+        )}
+
         {story.scenes.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
