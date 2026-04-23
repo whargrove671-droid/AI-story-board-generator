@@ -14,11 +14,9 @@ ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 async function downloadFile(url: string, outputPath: string) {
   const response = await fetch(url);
   if (!response.ok) throw new Error(`Failed to fetch ${url}: ${response.statusText}`);
-  if (!response.body) throw new Error(`No body for ${url}`);
   
-  const fileStream = fs.createWriteStream(outputPath);
-  // @ts-ignore - ReadableStream types between DOM and Node can clash, but pipeline works
-  await pipeline(response.body, fileStream);
+  const arrayBuffer = await response.arrayBuffer();
+  fs.writeFileSync(outputPath, new Uint8Array(arrayBuffer));
 }
 
 // Helper function to create a video segment from image and audio
@@ -34,7 +32,9 @@ function createSegment(imagePath: string, audioPath: string, text: string, outpu
     const textPath = path.join(tmpDir, textFileName);
     fs.writeFileSync(textPath, wrappedText, 'utf8');
 
-    // Use absolute paths for input/output, but relative path for textfile because drawtext parses colons badly
+    // For ffmpeg drawtext textfile on Windows, we need to escape the colon and use forward slashes
+    const safeTextPath = textPath.replace(/\\/g, '/').replace(/:/g, '\\:');
+
     ffmpeg()
       .input(imagePath)
       .inputOptions(['-loop', '1'])
@@ -45,13 +45,10 @@ function createSegment(imagePath: string, audioPath: string, text: string, outpu
         '-b:a', '192k',
         '-pix_fmt', 'yuv420p',
         '-shortest',
-        // Draw text from file. Use relative filename since we set cwd!
-        // Also removed text_align=C as it's unsupported in some ffmpeg versions
-        '-vf', `drawtext=textfile='${textFileName}':fontcolor=white:fontsize=36:box=1:boxcolor=black@0.6:boxborderw=10:x=(w-text_w)/2:y=h-text_h-50:line_spacing=10`
+        // Draw text from file with a semi-transparent black box background
+        '-vf', `drawtext=textfile='${safeTextPath}':fontcolor=white:fontsize=36:box=1:boxcolor=black@0.6:boxborderw=10:x=(w-text_w)/2:y=h-text_h-50:line_spacing=10`
       ])
       .save(outputPath)
-      // Set the working directory to tmpDir so relative textfile path works
-      .cwd(tmpDir)
       .on('end', () => resolve())
       .on('error', (err: any) => reject(err));
   });
