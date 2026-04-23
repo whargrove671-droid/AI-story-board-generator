@@ -198,15 +198,17 @@ export function StoryCard({ story, onRefresh }: StoryCardProps) {
                       <p className="text-sm text-red-600 dark:text-red-400">Image generation failed</p>
                     </div>
                   </div>
-                ) : (
+                ) : scene.image_status === 'skipped' ? null : (
                   <div className="w-full aspect-video rounded-lg border bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
                     <p className="text-sm text-muted-foreground">Waiting to generate image...</p>
                   </div>
                 )}
 
-                <div className="text-xs text-muted-foreground bg-slate-100 dark:bg-slate-900 rounded p-3 border">
-                  <span className="font-medium">Image Prompt:</span> {scene.image_prompt}
-                </div>
+                {scene.image_prompt && scene.image_prompt.trim() !== '' && (
+                  <div className="text-xs text-muted-foreground bg-slate-100 dark:bg-slate-900 rounded p-3 border">
+                    <span className="font-medium">Image Prompt:</span> {scene.image_prompt}
+                  </div>
+                )}
               </div>
             ))}
           </div>
