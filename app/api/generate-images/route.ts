@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'black-forest-labs/FLUX.1-schnell-Free',
+            model: 'black-forest-labs/FLUX.1-schnell',
             prompt: `${scene.image_prompt}. Cinematic, high quality, detailed, 16:9 aspect ratio`,
             width: 1024,
             height: 576,
@@ -69,7 +69,8 @@ export async function POST(request: NextRequest) {
         });
 
         if (!response.ok) {
-          throw new Error(`Together AI API error: ${response.statusText}`);
+          const errorText = await response.text();
+          throw new Error(`Together AI API error: ${response.status} ${response.statusText} - ${errorText}`);
         }
 
         const data = await response.json();
