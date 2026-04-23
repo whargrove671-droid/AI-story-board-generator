@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Loader as Loader2, LogOut, Sparkles, Image as ImageIcon, BookOpen } from 'lucide-react';
 import { StoryCard } from '@/components/story-card';
@@ -29,6 +30,7 @@ type Story = {
 
 export default function DashboardPage() {
   const [storyIdea, setStoryIdea] = useState('');
+  const [storyLength, setStoryLength] = useState('5');
   const [loading, setLoading] = useState(false);
   const [stories, setStories] = useState<Story[]>([]);
   const [loadingStories, setLoadingStories] = useState(true);
@@ -111,7 +113,7 @@ export default function DashboardPage() {
       const response = await fetch('/api/generate-story', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ storyIdea, storyId: story.id }),
+        body: JSON.stringify({ storyIdea, storyId: story.id, storyLength: parseInt(storyLength, 10) }),
       });
 
       if (!response.ok) {
@@ -165,7 +167,7 @@ export default function DashboardPage() {
               Generate New Story
             </CardTitle>
             <CardDescription>
-              Enter your story idea and let AI create a 5-scene script with stunning images
+              Enter your story idea and let AI create a detailed script with stunning images
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -178,10 +180,23 @@ export default function DashboardPage() {
                 rows={4}
                 className="resize-none"
               />
-              <Button type="submit" disabled={loading} className="w-full sm:w-auto">
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {loading ? 'Generating Story...' : 'Generate Story'}
-              </Button>
+              <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+                <div className="w-full sm:w-72">
+                  <Select value={storyLength} onValueChange={setStoryLength} disabled={loading}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select story length" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="5">Short (5 Scenes, 5 Images)</SelectItem>
+                      <SelectItem value="20">Medium (20 Scenes, 5 Images)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button type="submit" disabled={loading} className="w-full sm:w-auto">
+                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {loading ? 'Generating Story...' : 'Generate Story'}
+                </Button>
+              </div>
             </form>
           </CardContent>
         </Card>

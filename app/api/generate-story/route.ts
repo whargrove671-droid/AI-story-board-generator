@@ -12,6 +12,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const storyIdea = body.storyIdea;
+    const storyLength = body.storyLength || 5;
     storyId = body.storyId;
 
     if (!storyIdea || !storyId) {
@@ -44,18 +45,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const prompt = `You are a creative storytelling AI. Given a story idea, create a detailed 5-scene narrative.
+    const prompt = `You are a creative storytelling AI. Given a story idea, create a detailed ${storyLength}-scene narrative.
 
 Story Idea: "${storyIdea}"
 
-Return exactly 5 scenes.
+Return exactly ${storyLength} scenes.
 
 Rules:
 - Each scene should be 3-4 sentences
-- Each image prompt should be detailed and visual
-- Keep the story cohesive across all 5 scenes
+- Provide a detailed, cinematic \`imagePrompt\` ONLY for the first scene in every group of 4 scenes (i.e., Scene 1, Scene 5, Scene 9, Scene 13, etc.).
+- For all other scenes, the \`imagePrompt\` MUST be an empty string "".
+- Keep the story cohesive across all ${storyLength} scenes
 - Make scenes cinematic and engaging
-- Image prompts should work well with AI image generators like DALL-E or Stable Diffusion`;
+- When providing an image prompt, ensure it works well with AI image generators`;
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
@@ -64,12 +66,12 @@ Rules:
         {
           role: 'system',
           content:
-            'You are a creative storytelling assistant that generates engaging 5-scene narratives with detailed image prompts. You MUST return a JSON object containing a "scenes" array. Each object in the array must have "script" and "imagePrompt" string fields.',
+            `You are a creative storytelling assistant that generates engaging ${storyLength}-scene narratives with sparse image prompts. You MUST return a JSON object containing a "scenes" array. Each object in the array must have "script" and "imagePrompt" string fields.`,
         },
         { role: 'user', content: prompt },
       ],
       temperature: 0.8,
-      max_tokens: 2000,
+      max_tokens: 8000,
     });
 
     const generatedText = completion.choices[0]?.message?.content;
@@ -86,18 +88,21 @@ Rules:
       console.error('Failed to parse OpenAI JSON response:', e);
     }
 
-    if (scenes.length !== 5) {
-      console.error('Expected 5 scenes, got:', scenes.length);
+    if (scenes.length !== storyLength) {
+      console.error(`Expected ${storyLength} scenes, got:`, scenes.length);
     }
 
-    for (let i = 0; i < scenes.length && i < 5; i++) {
+    for (let i = 0; i < scenes.length && i < storyLength; i++) {
       const scene = scenes[i];
+      const imagePrompt = scene.imagePrompt?.trim() || '';
+      const imageStatus = imagePrompt ? 'pending' : 'skipped';
+
       const { error } = await supabase.from('scenes').insert({
         story_id: storyId,
         scene_number: i + 1,
         script: scene.script,
-        image_prompt: scene.imagePrompt,
-        image_status: 'pending',
+        image_prompt: imagePrompt,
+        image_status: imageStatus,
       });
 
       if (error) {
