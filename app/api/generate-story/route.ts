@@ -115,20 +115,6 @@ Rules:
       .update({ status: 'completed' })
       .eq('id', storyId);
 
-    const cookieHeader = request.headers.get('cookie');
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
-    if (cookieHeader) {
-      headers['Cookie'] = cookieHeader;
-    }
-
-    fetch(`${request.nextUrl.origin}/api/generate-images`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ storyId }),
-    }).catch((error) => console.error('Error triggering image generation:', error));
-
     return NextResponse.json({
       success: true,
       scenesCount: scenes.length,
