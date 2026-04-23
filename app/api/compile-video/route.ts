@@ -22,22 +22,23 @@ async function downloadFile(url: string, outputPath: string) {
 }
 
 // Helper function to create a video segment from image and audio
-function createSegment(imagePath: string, audioPath: string, text: string, outputPath: string): Promise<void> {
+function createSegment(imagePath: string, audioPath: string, text: string, outputPath: string, tmpDir: string, index: number): Promise<void> {
   return new Promise((resolve, reject) => {
-    // We burn subtitles at the bottom
-    // We have to escape colons and backslashes for the drawtext filter
-    const safeText = text
-      .replace(/'/g, "\\'")
-      .replace(/:/g, '\\:')
+    // Break into lines roughly every 50 characters (simple word wrap)
+    const wrappedText = text
       .replace(/\n/g, ' ')
-      .replace(/[\u2018\u2019]/g, "'")
-      .replace(/[\u201C\u201D]/g, '"')
-      // Break into lines roughly every 50 characters (simple word wrap)
-      .match(/(?=.{1,50}\s|.{1,50}$)[^ \n]+(?: [^ \n]+)*/g)?.join('\\n') || text;
+      .match(/(?=.{1,50}\s|.{1,50}$)[^ \n]+(?: [^ \n]+)*/g)?.join('\n') || text;
+
+    // Write text to a temporary file to avoid ffmpeg escaping nightmares
+    const textPath = path.join(tmpDir, `text_${index}.txt`);
+    fs.writeFileSync(textPath, wrappedText, 'utf8');
+
+    // For ffmpeg, paths in filters on Windows need forward slashes, and colons must be escaped
+    const safeTextPath = textPath.replace(/\\/g, '/').replace(/:/g, '\\:');
 
     ffmpeg()
       .input(imagePath)
-      .inputOptions(['-loop 1'])
+      .inputOptions(['-loop', '1'])
       .input(audioPath)
       .outputOptions([
         '-c:v', 'libx264',
@@ -45,8 +46,8 @@ function createSegment(imagePath: string, audioPath: string, text: string, outpu
         '-b:a', '192k',
         '-pix_fmt', 'yuv420p',
         '-shortest',
-        // Draw text with a semi-transparent black box background
-        '-vf', `drawtext=text='${safeText}':fontcolor=white:fontsize=36:box=1:boxcolor=black@0.6:boxborderw=10:x=(w-text_w)/2:y=h-text_h-50:line_spacing=10:text_align=C`
+        // Draw text from file with a semi-transparent black box background
+        '-vf', `drawtext=textfile='${safeTextPath}':fontcolor=white:fontsize=36:box=1:boxcolor=black@0.6:boxborderw=10:x=(w-text_w)/2:y=h-text_h-50:line_spacing=10:text_align=C`
       ])
       .save(outputPath)
       .on('end', () => resolve())
@@ -137,7 +138,7 @@ export async function POST(request: NextRequest) {
       await downloadFile(scene.audio_url, audioPath);
 
       console.log(`Rendering segment ${scene.scene_number}...`);
-      await createSegment(imgPath, audioPath, scene.script, outPath);
+      await createSegment(imgPath, audioPath, scene.script, outPath, tmpDir, i);
       segmentPaths.push(outPath);
     }
 
