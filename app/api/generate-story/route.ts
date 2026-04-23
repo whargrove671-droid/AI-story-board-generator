@@ -105,9 +105,17 @@ Rules:
       .update({ status: 'completed' })
       .eq('id', storyId);
 
+    const cookieHeader = request.headers.get('cookie');
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (cookieHeader) {
+      headers['Cookie'] = cookieHeader;
+    }
+
     fetch(`${request.nextUrl.origin}/api/generate-images`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({ storyId }),
     }).catch((error) => console.error('Error triggering image generation:', error));
 
@@ -127,8 +135,8 @@ Rules:
 function parseScenes(text: string): Array<{ script: string; imagePrompt: string }> {
   const scenes: Array<{ script: string; imagePrompt: string }> = [];
 
-  const sceneRegex = /SCENE\s+(\d+):\s*([\s\S]*?)(?=IMAGE_PROMPT\s+\1:|$)/gi;
-  const imagePromptRegex = /IMAGE_PROMPT\s+(\d+):\s*([\s\S]*?)(?=SCENE\s+\d+:|$)/gi;
+  const sceneRegex = /\*?\*?SCENE\s+(\d+):\*?\*?\s*([\s\S]*?)(?=\*?\*?IMAGE_PROMPT\s+\1:\*?\*?|$)/gi;
+  const imagePromptRegex = /\*?\*?IMAGE_PROMPT\s+(\d+):\*?\*?\s*([\s\S]*?)(?=\*?\*?SCENE\s+\d+:\*?\*?|$)/gi;
 
   const sceneMatches = Array.from(text.matchAll(sceneRegex));
   const imagePromptMatches = Array.from(text.matchAll(imagePromptRegex));
