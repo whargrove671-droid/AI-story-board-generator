@@ -34,14 +34,35 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(false);
   const [stories, setStories] = useState<Story[]>([]);
   const [loadingStories, setLoadingStories] = useState(true);
+  const [youtubeConnected, setYoutubeConnected] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
   const supabase = createClient();
 
   useEffect(() => {
     loadStories();
+    checkYouTubeConnection();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const checkYouTubeConnection = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from('user_settings')
+        .select('youtube_refresh_token')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (data && data.youtube_refresh_token) {
+        setYoutubeConnected(true);
+      }
+    } catch (e) {
+      // It might fail if user_settings table doesn't exist yet or no row
+      console.error('Error checking YouTube connection:', e);
+    }
+  };
 
   const loadStories = async () => {
     try {
@@ -163,10 +184,21 @@ export default function DashboardPage() {
               <p className="text-sm text-muted-foreground">Create amazing stories with AI</p>
             </div>
           </div>
-          <Button variant="outline" onClick={handleLogout}>
-            <LogOut className="mr-2 h-4 w-4" />
-            Logout
-          </Button>
+          <div className="flex items-center gap-4">
+            {!youtubeConnected ? (
+              <Button variant="outline" className="border-red-500 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/50" onClick={() => window.location.href = '/api/youtube/auth'}>
+                Connect YouTube
+              </Button>
+            ) : (
+              <div className="text-sm font-medium text-red-500 bg-red-50 dark:bg-red-950/30 px-3 py-1.5 rounded-md border border-red-200 dark:border-red-900/50">
+                YouTube Connected
+              </div>
+            )}
+            <Button variant="outline" onClick={handleLogout}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Logout
+            </Button>
+          </div>
         </div>
       </header>
 
