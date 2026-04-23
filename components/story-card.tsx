@@ -33,8 +33,35 @@ interface StoryCardProps {
 
 export function StoryCard({ story, onRefresh }: StoryCardProps) {
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isRetrying, setIsRetrying] = useState(false);
   const supabase = createClient();
   const { toast } = useToast();
+
+  const handleRetryImages = async () => {
+    try {
+      setIsRetrying(true);
+      const response = await fetch('/api/generate-images', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ storyId: story.id }),
+      });
+      if (!response.ok) throw new Error('Failed to restart image generation');
+      
+      toast({
+        title: 'Started Image Generation',
+        description: 'Image generation is running...',
+      });
+      onRefresh();
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to retry image generation',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsRetrying(false);
+    }
+  };
 
   const handleDelete = async () => {
     try {
@@ -85,6 +112,9 @@ export function StoryCard({ story, onRefresh }: StoryCardProps) {
     }
   };
 
+  const hasStuckScenes = story.scenes.some(s => s.image_status === 'pending' || s.image_status === 'failed');
+  const isGenerating = story.scenes.some(s => s.image_status === 'generating');
+
   return (
     <Card className="shadow-lg overflow-hidden">
       <CardHeader className="border-b bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900">
@@ -98,16 +128,29 @@ export function StoryCard({ story, onRefresh }: StoryCardProps) {
           </div>
           <div className="flex flex-col items-end gap-2">
             {getStatusBadge(story.status)}
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleDelete} 
-              disabled={isDeleting}
-              className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50"
-            >
-              {isDeleting ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Trash2 className="h-4 w-4 mr-1" />}
-              {story.status === 'failed' || story.status === 'generating' || story.scenes.some(s => s.image_status === 'failed' || s.image_status === 'generating') ? 'Cancel & Delete' : 'Delete'}
-            </Button>
+            <div className="flex items-center gap-2">
+              {hasStuckScenes && !isGenerating && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleRetryImages} 
+                  disabled={isRetrying}
+                >
+                  {isRetrying ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <AlertCircle className="h-4 w-4 mr-1" />}
+                  Retry Images
+                </Button>
+              )}
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleDelete} 
+                disabled={isDeleting}
+                className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50"
+              >
+                {isDeleting ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Trash2 className="h-4 w-4 mr-1" />}
+                {story.status === 'failed' || story.status === 'generating' || story.scenes.some(s => s.image_status === 'failed' || s.image_status === 'generating') ? 'Cancel & Delete' : 'Delete'}
+              </Button>
+            </div>
           </div>
         </div>
       </CardHeader>
