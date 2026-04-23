@@ -2,13 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import ffmpeg from 'fluent-ffmpeg';
 import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
+import ffprobeInstaller from '@ffprobe-installer/ffprobe';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import { pipeline } from 'stream/promises';
 
-// Set the ffmpeg path
+// Set the ffmpeg/ffprobe paths
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
+ffmpeg.setFfprobePath(ffprobeInstaller.path);
 
 // Helper function to download a file
 async function downloadFile(url: string, outputPath: string) {
