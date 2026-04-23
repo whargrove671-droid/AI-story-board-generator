@@ -51,13 +51,13 @@ export async function POST(request: NextRequest) {
     });
 
     let processedCount = 0;
+    const CONCURRENCY = 5;
 
-    for (const scene of scenes) {
-      // Skip if already generated or if script is empty
-      if (scene.audio_url || !scene.script || scene.script.trim() === '') {
-        continue;
-      }
+    const scenesToProcess = scenes.filter(
+      (scene) => !scene.audio_url && scene.script && scene.script.trim() !== ''
+    );
 
+    const processScene = async (scene: any) => {
       try {
         console.log(`Generating audio for scene ${scene.id}...`);
         
@@ -100,6 +100,12 @@ export async function POST(request: NextRequest) {
         console.error(`Error generating audio for scene ${scene.id}:`, error);
         // We'll just log the error and continue with the next scene
       }
+    };
+
+    // Process in batches
+    for (let i = 0; i < scenesToProcess.length; i += CONCURRENCY) {
+      const batch = scenesToProcess.slice(i, i + CONCURRENCY);
+      await Promise.all(batch.map(processScene));
     }
 
     // Call compile video if all audio/images are done?
