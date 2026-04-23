@@ -56,16 +56,24 @@ function createSegment(imagePath: string, audioPath: string, text: string, outpu
   });
 }
 
-// Helper to concatenate segments
-function concatenateSegments(segmentPaths: string[], outputPath: string): Promise<void> {
+// Helper to concatenate segments with faststart for web streaming
+function concatenateSegments(segmentPaths: string[], outputPath: string, tmpDir: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    const command = ffmpeg();
-    segmentPaths.forEach(p => command.input(p));
-    
-    command
+    const concatPath = path.join(tmpDir, 'concat.txt');
+    // FFmpeg concat demuxer needs forward slashes for absolute paths on Windows
+    const concatContent = segmentPaths.map(p => `file '${p.replace(/\\/g, '/')}'`).join('\n');
+    fs.writeFileSync(concatPath, concatContent, 'utf8');
+
+    ffmpeg()
+      .input(concatPath)
+      .inputOptions(['-f', 'concat', '-safe', '0'])
+      .outputOptions([
+        '-c', 'copy',
+        '-movflags', '+faststart'
+      ])
+      .save(outputPath)
       .on('end', () => resolve())
-      .on('error', (err: any) => reject(err))
-      .mergeToFile(outputPath, os.tmpdir());
+      .on('error', (err: any) => reject(err));
   });
 }
 
@@ -145,7 +153,7 @@ export async function POST(request: NextRequest) {
 
     const finalVideoPath = path.join(tmpDir, `final_${storyId}.mp4`);
     console.log(`Concatenating ${segmentPaths.length} segments...`);
-    await concatenateSegments(segmentPaths, finalVideoPath);
+    await concatenateSegments(segmentPaths, finalVideoPath, tmpDir);
 
     console.log(`Uploading final video to Supabase Storage...`);
     const fileBuffer = fs.readFileSync(finalVideoPath);
