@@ -40,13 +40,13 @@ function createSegment(imagePath: string, audioPath: string, text: string, outpu
       .inputOptions(['-loop 1'])
       .input(audioPath)
       .outputOptions([
-        '-c:v libx264',
-        '-c:a aac',
-        '-b:a 192k',
-        '-pix_fmt yuv420p',
+        '-c:v', 'libx264',
+        '-c:a', 'aac',
+        '-b:a', '192k',
+        '-pix_fmt', 'yuv420p',
         '-shortest',
         // Draw text with a semi-transparent black box background
-        `-vf drawtext=text='${safeText}':fontcolor=white:fontsize=36:box=1:boxcolor=black@0.6:boxborderw=10:x=(w-text_w)/2:y=h-text_h-50:line_spacing=10:text_align=C`
+        '-vf', `drawtext=text='${safeText}':fontcolor=white:fontsize=36:box=1:boxcolor=black@0.6:boxborderw=10:x=(w-text_w)/2:y=h-text_h-50:line_spacing=10:text_align=C`
       ])
       .save(outputPath)
       .on('end', () => resolve())
