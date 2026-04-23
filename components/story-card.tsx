@@ -3,9 +3,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Loader as Loader2, CircleAlert as AlertCircle, CircleCheck as CheckCircle, Trash2 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Loader as Loader2, CircleAlert as AlertCircle, CircleCheck as CheckCircle, Trash2, Youtube } from 'lucide-react';
 import Image from 'next/image';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -25,6 +27,7 @@ type Story = {
   status: string;
   created_at: string;
   video_url?: string | null;
+  youtube_url?: string | null;
   scenes: Scene[];
 };
 
@@ -37,8 +40,24 @@ export function StoryCard({ story, onRefresh }: StoryCardProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
+  const [isUploadingYouTube, setIsUploadingYouTube] = useState(false);
+  const [autoUpload, setAutoUpload] = useState(false);
+  const [hasYouTubeConnected, setHasYouTubeConnected] = useState(false);
   const supabase = createClient();
   const { toast } = useToast();
+
+  useEffect(() => {
+    // Check if user has YouTube connected so we can show the switch
+    const checkYt = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase.from('user_settings').select('youtube_refresh_token').eq('user_id', user.id).single();
+      if (data && data.youtube_refresh_token) {
+        setHasYouTubeConnected(true);
+      }
+    };
+    checkYt();
+  }, [supabase]);
 
   const handleGenerateVideo = async () => {
     try {
@@ -72,10 +91,32 @@ export function StoryCard({ story, onRefresh }: StoryCardProps) {
 
       toast({ title: 'Success', description: 'Video generated successfully!' });
       onRefresh();
+
+      // YouTube Auto-Upload
+      if (autoUpload) {
+        setIsUploadingYouTube(true);
+        toast({ title: 'YouTube Upload', description: 'Uploading video to YouTube as private...' });
+        
+        const ytResponse = await fetch('/api/youtube/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ storyId: story.id })
+        });
+        
+        if (!ytResponse.ok) {
+          const err = await ytResponse.json();
+          throw new Error(err.error || 'Failed to upload to YouTube');
+        }
+        
+        toast({ title: 'Success', description: 'Video automatically uploaded to YouTube!' });
+        onRefresh();
+      }
+
     } catch (error: any) {
-      toast({ title: 'Error', description: error.message || 'Failed to generate video', variant: 'destructive' });
+      toast({ title: 'Error', description: error.message || 'Failed to process', variant: 'destructive' });
     } finally {
       setIsGeneratingVideo(false);
+      setIsUploadingYouTube(false);
     }
   };
 
