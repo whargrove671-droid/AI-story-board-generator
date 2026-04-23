@@ -44,13 +44,7 @@ export async function POST(request: NextRequest) {
 
 Story Idea: "${storyIdea}"
 
-Create exactly 5 scenes with the following format for each scene:
-
-SCENE [number]:
-[Write a detailed, engaging script for this scene in 3-4 sentences. Make it cinematic and descriptive.]
-
-IMAGE_PROMPT [number]:
-[Write a detailed image generation prompt that captures the visual essence of this scene. Include setting, characters, mood, lighting, and artistic style. Make it suitable for 16:9 ratio image generation.]
+Return exactly 5 scenes.
 
 Rules:
 - Each scene should be 3-4 sentences
@@ -61,11 +55,12 @@ Rules:
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
+      response_format: { type: 'json_object' },
       messages: [
         {
           role: 'system',
           content:
-            'You are a creative storytelling assistant that generates engaging 5-scene narratives with detailed image prompts.',
+            'You are a creative storytelling assistant that generates engaging 5-scene narratives with detailed image prompts. You MUST return a JSON object containing a "scenes" array. Each object in the array must have "script" and "imagePrompt" string fields.',
         },
         { role: 'user', content: prompt },
       ],
@@ -79,7 +74,13 @@ Rules:
       throw new Error('No content generated from OpenAI');
     }
 
-    const scenes = parseScenes(generatedText);
+    let scenes: Array<{ script: string; imagePrompt: string }> = [];
+    try {
+      const parsed = JSON.parse(generatedText);
+      scenes = parsed.scenes || [];
+    } catch (e) {
+      console.error('Failed to parse OpenAI JSON response:', e);
+    }
 
     if (scenes.length !== 5) {
       console.error('Expected 5 scenes, got:', scenes.length);
@@ -130,25 +131,4 @@ Rules:
       { status: 500 }
     );
   }
-}
-
-function parseScenes(text: string): Array<{ script: string; imagePrompt: string }> {
-  const scenes: Array<{ script: string; imagePrompt: string }> = [];
-
-  const sceneRegex = /\*?\*?SCENE\s+(\d+):\*?\*?\s*([\s\S]*?)(?=\*?\*?IMAGE_PROMPT\s+\1:\*?\*?|$)/gi;
-  const imagePromptRegex = /\*?\*?IMAGE_PROMPT\s+(\d+):\*?\*?\s*([\s\S]*?)(?=\*?\*?SCENE\s+\d+:\*?\*?|$)/gi;
-
-  const sceneMatches = Array.from(text.matchAll(sceneRegex));
-  const imagePromptMatches = Array.from(text.matchAll(imagePromptRegex));
-
-  for (let i = 0; i < Math.min(sceneMatches.length, imagePromptMatches.length); i++) {
-    const script = sceneMatches[i][2].trim();
-    const imagePrompt = imagePromptMatches[i][2].trim();
-
-    if (script && imagePrompt) {
-      scenes.push({ script, imagePrompt });
-    }
-  }
-
-  return scenes;
 }
