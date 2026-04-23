@@ -74,13 +74,37 @@ export async function POST(request: NextRequest) {
         }
 
         const data = await response.json();
-        const imageUrl = data.data?.[0]?.url;
+        const ephemeralUrl = data.data?.[0]?.url;
 
-        if (imageUrl) {
+        if (ephemeralUrl) {
+          console.log(`Downloading ephemeral image for scene ${scene.id}...`);
+          const imgResponse = await fetch(ephemeralUrl);
+          if (!imgResponse.ok) throw new Error('Failed to download image from Together AI');
+          
+          const arrayBuffer = await imgResponse.arrayBuffer();
+          const buffer = Buffer.from(arrayBuffer);
+          const fileName = `story_${storyId}_scene_${scene.id}.png`;
+
+          console.log(`Uploading image to Supabase Storage...`);
+          const { error: uploadError } = await supabase.storage
+            .from('media')
+            .upload(fileName, buffer, {
+              contentType: 'image/png',
+              upsert: true,
+            });
+
+          if (uploadError) throw uploadError;
+
+          const { data: publicUrlData } = supabase.storage
+            .from('media')
+            .getPublicUrl(fileName);
+
+          const permanentUrl = publicUrlData.publicUrl;
+
           await supabase
             .from('scenes')
             .update({
-              image_url: imageUrl,
+              image_url: permanentUrl,
               image_status: 'completed',
             })
             .eq('id', scene.id);
