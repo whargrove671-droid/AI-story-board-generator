@@ -120,6 +120,31 @@ export function StoryCard({ story, onRefresh }: StoryCardProps) {
     }
   };
 
+  const handleUploadYouTube = async () => {
+    try {
+      setIsUploadingYouTube(true);
+      toast({ title: 'YouTube Upload', description: 'Uploading video to YouTube as private...' });
+      
+      const ytResponse = await fetch('/api/youtube/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ storyId: story.id })
+      });
+      
+      if (!ytResponse.ok) {
+        const err = await ytResponse.json();
+        throw new Error(err.error || 'Failed to upload to YouTube');
+      }
+      
+      toast({ title: 'Success', description: 'Video uploaded to YouTube!' });
+      onRefresh();
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message || 'Failed to upload to YouTube', variant: 'destructive' });
+    } finally {
+      setIsUploadingYouTube(false);
+    }
+  };
+
   const handleRetryImages = async () => {
     try {
       setIsRetrying(true);
@@ -245,6 +270,18 @@ export function StoryCard({ story, onRefresh }: StoryCardProps) {
                 >
                   {(isGeneratingVideo || isUploadingYouTube) ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <AlertCircle className="h-4 w-4 mr-1 hidden" />}
                   {isUploadingYouTube ? 'Uploading to YouTube...' : 'Generate Video'}
+                </Button>
+              )}
+              {story.video_url && !story.youtube_url && hasYouTubeConnected && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleUploadYouTube} 
+                  disabled={isUploadingYouTube}
+                  className="bg-red-50 hover:bg-red-100 text-red-600 border-red-200 dark:bg-red-950/30 dark:hover:bg-red-900/50 dark:border-red-900/50"
+                >
+                  {isUploadingYouTube ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Youtube className="h-4 w-4 mr-1" />}
+                  {isUploadingYouTube ? 'Uploading to YouTube...' : 'Upload to YouTube'}
                 </Button>
               )}
               {hasStuckScenes && !isGeneratingImages && (
