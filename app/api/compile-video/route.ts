@@ -50,7 +50,7 @@ function createSegment(imagePath: string, audioPath: string, text: string, outpu
       ])
       .save(outputPath)
       .on('end', () => resolve())
-      .on('error', (err) => reject(err));
+      .on('error', (err: any) => reject(err));
   });
 }
 
@@ -62,7 +62,7 @@ function concatenateSegments(segmentPaths: string[], outputPath: string): Promis
     
     command
       .on('end', () => resolve())
-      .on('error', (err) => reject(err))
+      .on('error', (err: any) => reject(err))
       .mergeToFile(outputPath, os.tmpdir());
   });
 }
