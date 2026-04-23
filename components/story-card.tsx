@@ -220,17 +220,31 @@ export function StoryCard({ story, onRefresh }: StoryCardProps) {
           </div>
           <div className="flex flex-col items-end gap-2">
             {getStatusBadge(story.status)}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
+              {canGenerateVideo && hasYouTubeConnected && (
+                <div className="flex items-center space-x-2 bg-slate-100 dark:bg-slate-900 px-3 py-1.5 rounded-md border">
+                  <Switch 
+                    id={`yt-upload-${story.id}`} 
+                    checked={autoUpload} 
+                    onCheckedChange={setAutoUpload}
+                    disabled={isGeneratingVideo || isUploadingYouTube}
+                  />
+                  <Label htmlFor={`yt-upload-${story.id}`} className="text-sm cursor-pointer flex items-center gap-1">
+                    <Youtube className="w-4 h-4 text-red-500" />
+                    Auto-Upload to YouTube
+                  </Label>
+                </div>
+              )}
               {canGenerateVideo && (
                 <Button 
                   variant="default" 
                   size="sm" 
                   onClick={handleGenerateVideo} 
-                  disabled={isGeneratingVideo}
+                  disabled={isGeneratingVideo || isUploadingYouTube}
                   className="bg-purple-600 hover:bg-purple-700 text-white"
                 >
-                  {isGeneratingVideo ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <AlertCircle className="h-4 w-4 mr-1 hidden" />}
-                  Generate Video
+                  {(isGeneratingVideo || isUploadingYouTube) ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <AlertCircle className="h-4 w-4 mr-1 hidden" />}
+                  {isUploadingYouTube ? 'Uploading to YouTube...' : 'Generate Video'}
                 </Button>
               )}
               {hasStuckScenes && !isGeneratingImages && (
@@ -261,9 +275,17 @@ export function StoryCard({ story, onRefresh }: StoryCardProps) {
       <CardContent className="p-6">
         {story.video_url && (
           <div className="mb-8 p-4 bg-slate-900 rounded-xl shadow-inner">
-            <h3 className="text-white text-lg font-semibold mb-4 flex items-center gap-2">
-              <span className="text-purple-400">🎬</span> Final Generated Video
-            </h3>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-4">
+              <h3 className="text-white text-lg font-semibold flex items-center gap-2">
+                <span className="text-purple-400">🎬</span> Final Generated Video
+              </h3>
+              {story.youtube_url && (
+                <a href={story.youtube_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm font-medium text-red-400 hover:text-red-300 bg-red-950/30 px-3 py-1.5 rounded-lg border border-red-900/50 transition-colors">
+                  <Youtube className="w-4 h-4" />
+                  View on YouTube (Private)
+                </a>
+              )}
+            </div>
             <video 
               src={story.video_url} 
               controls 
