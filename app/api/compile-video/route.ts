@@ -30,12 +30,11 @@ function createSegment(imagePath: string, audioPath: string, text: string, outpu
       .match(/(?=.{1,50}\s|.{1,50}$)[^ \n]+(?: [^ \n]+)*/g)?.join('\n') || text;
 
     // Write text to a temporary file to avoid ffmpeg escaping nightmares
-    const textPath = path.join(tmpDir, `text_${index}.txt`);
+    const textFileName = `text_${index}.txt`;
+    const textPath = path.join(tmpDir, textFileName);
     fs.writeFileSync(textPath, wrappedText, 'utf8');
 
-    // For ffmpeg, paths in filters on Windows need forward slashes, and colons must be escaped
-    const safeTextPath = textPath.replace(/\\/g, '/').replace(/:/g, '\\:');
-
+    // Use absolute paths for input/output, but relative path for textfile because drawtext parses colons badly
     ffmpeg()
       .input(imagePath)
       .inputOptions(['-loop', '1'])
@@ -46,10 +45,13 @@ function createSegment(imagePath: string, audioPath: string, text: string, outpu
         '-b:a', '192k',
         '-pix_fmt', 'yuv420p',
         '-shortest',
-        // Draw text from file with a semi-transparent black box background
-        '-vf', `drawtext=textfile='${safeTextPath}':fontcolor=white:fontsize=36:box=1:boxcolor=black@0.6:boxborderw=10:x=(w-text_w)/2:y=h-text_h-50:line_spacing=10:text_align=C`
+        // Draw text from file. Use relative filename since we set cwd!
+        // Also removed text_align=C as it's unsupported in some ffmpeg versions
+        '-vf', `drawtext=textfile='${textFileName}':fontcolor=white:fontsize=36:box=1:boxcolor=black@0.6:boxborderw=10:x=(w-text_w)/2:y=h-text_h-50:line_spacing=10`
       ])
       .save(outputPath)
+      // Set the working directory to tmpDir so relative textfile path works
+      .cwd(tmpDir)
       .on('end', () => resolve())
       .on('error', (err: any) => reject(err));
   });
