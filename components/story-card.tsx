@@ -2,8 +2,12 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader as Loader2, CircleAlert as AlertCircle, CircleCheck as CheckCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Loader as Loader2, CircleAlert as AlertCircle, CircleCheck as CheckCircle, Trash2 } from 'lucide-react';
 import Image from 'next/image';
+import { useState } from 'react';
+import { createClient } from '@/lib/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 type Scene = {
   id: string;
@@ -28,6 +32,31 @@ interface StoryCardProps {
 }
 
 export function StoryCard({ story, onRefresh }: StoryCardProps) {
+  const [isDeleting, setIsDeleting] = useState(false);
+  const supabase = createClient();
+  const { toast } = useToast();
+
+  const handleDelete = async () => {
+    try {
+      setIsDeleting(true);
+      const { error } = await supabase.from('stories').delete().eq('id', story.id);
+      if (error) throw error;
+      
+      toast({
+        title: 'Story deleted',
+        description: 'The story has been removed from your dashboard.',
+      });
+      onRefresh();
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to delete story',
+        variant: 'destructive',
+      });
+      setIsDeleting(false);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'completed':
@@ -67,7 +96,21 @@ export function StoryCard({ story, onRefresh }: StoryCardProps) {
               {new Date(story.created_at).toLocaleTimeString()}
             </p>
           </div>
-          {getStatusBadge(story.status)}
+          <div className="flex flex-col items-end gap-2">
+            {getStatusBadge(story.status)}
+            {(story.status === 'failed' || story.status === 'generating') && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleDelete} 
+                disabled={isDeleting}
+                className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50"
+              >
+                {isDeleting ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Trash2 className="h-4 w-4 mr-1" />}
+                Cancel & Delete
+              </Button>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent className="p-6">
