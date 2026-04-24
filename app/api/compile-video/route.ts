@@ -44,12 +44,13 @@ function createSegment(imagePath: string, audioPath: string, text: string, outpu
       .input(audioPath)
       .outputOptions([
         '-c:v', 'libx264',
-        '-r', '5',
+        '-r', '1',
         '-tune', 'stillimage',
-        '-crf', '32',
+        '-crf', '38',
         '-preset', 'ultrafast',
         '-c:a', 'aac',
-        '-b:a', '64k',
+        '-ac', '1',
+        '-b:a', '32k',
         '-pix_fmt', 'yuv420p',
         '-shortest',
         // Draw text from file with a semi-transparent black box background
