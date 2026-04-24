@@ -7,8 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Loader as Loader2, LogOut, Sparkles, Image as ImageIcon, BookOpen } from 'lucide-react';
+import { Loader as Loader2, LogOut, Sparkles, Image as ImageIcon, BookOpen, Youtube } from 'lucide-react';
 import { StoryCard } from '@/components/story-card';
 
 type Scene = {
@@ -31,6 +33,8 @@ type Story = {
 export default function DashboardPage() {
   const [storyIdea, setStoryIdea] = useState('');
   const [storyLength, setStoryLength] = useState('5');
+  const [youtubeUrl, setYoutubeUrl] = useState('');
+  const [activeTab, setActiveTab] = useState('text');
   const [loading, setLoading] = useState(false);
   const [stories, setStories] = useState<Story[]>([]);
   const [loadingStories, setLoadingStories] = useState(true);
@@ -171,6 +175,76 @@ export default function DashboardPage() {
     }
   };
 
+  const handleGenerateFromYoutube = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!youtubeUrl.trim()) {
+      toast({
+        title: 'Error',
+        description: 'Please enter a YouTube URL',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const { data: story, error: storyError } = await supabase
+        .from('stories')
+        .insert({
+          user_id: user.id,
+          title: `YouTube Video: ${youtubeUrl}`,
+          status: 'generating',
+        })
+        .select()
+        .single();
+
+      if (storyError) throw storyError;
+
+      const response = await fetch('/api/youtube/extract', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ youtubeUrl, storyId: story.id }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to generate story from YouTube');
+      }
+
+      toast({
+        title: 'Success',
+        description: 'Story text generated from YouTube! Now generating images...',
+      });
+
+      setYoutubeUrl('');
+      loadStories();
+
+      // Trigger image generation from the client
+      fetch('/api/generate-images', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ storyId: story.id }),
+      }).then(() => {
+        loadStories();
+      }).catch((err) => {
+        console.error('Failed to trigger image generation:', err);
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to generate story',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
       <header className="border-b bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm sticky top-0 z-10">
@@ -214,34 +288,66 @@ export default function DashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleGenerateStory} className="space-y-4">
-              <Textarea
-                placeholder="Enter your story idea here... (e.g., 'A brave knight embarks on a quest to find a magical crystal')"
-                value={storyIdea}
-                onChange={(e) => setStoryIdea(e.target.value)}
-                disabled={loading}
-                rows={4}
-                className="resize-none"
-              />
-              <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-                <div className="w-full sm:w-72">
-                  <Select value={storyLength} onValueChange={setStoryLength} disabled={loading}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select story length" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="5">Short (5 Scenes, 5 Images)</SelectItem>
-                      <SelectItem value="20">Medium (20 Scenes, 5 Images)</SelectItem>
-                      <SelectItem value="120">1 Hour (120 Scenes, Sparse Images)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button type="submit" disabled={loading} className="w-full sm:w-auto">
-                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {loading ? 'Generating Story...' : 'Generate Story'}
-                </Button>
-              </div>
-            </form>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-4">
+                <TabsTrigger value="text">Text Prompt</TabsTrigger>
+                <TabsTrigger value="youtube" className="flex items-center gap-2">
+                  <Youtube className="w-4 h-4" />
+                  From YouTube
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="text">
+                <form onSubmit={handleGenerateStory} className="space-y-4">
+                  <Textarea
+                    placeholder="Enter your story idea here... (e.g., 'A brave knight embarks on a quest to find a magical crystal')"
+                    value={storyIdea}
+                    onChange={(e) => setStoryIdea(e.target.value)}
+                    disabled={loading}
+                    rows={4}
+                    className="resize-none"
+                  />
+                  <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+                    <div className="w-full sm:w-72">
+                      <Select value={storyLength} onValueChange={setStoryLength} disabled={loading}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select story length" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="5">Short (5 Scenes, 5 Images)</SelectItem>
+                          <SelectItem value="20">Medium (20 Scenes, 5 Images)</SelectItem>
+                          <SelectItem value="120">1 Hour (120 Scenes, Sparse Images)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Button type="submit" disabled={loading} className="w-full sm:w-auto">
+                      {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      {loading ? 'Generating Story...' : 'Generate Story'}
+                    </Button>
+                  </div>
+                </form>
+              </TabsContent>
+              
+              <TabsContent value="youtube">
+                <form onSubmit={handleGenerateFromYoutube} className="space-y-4">
+                  <Input
+                    placeholder="Paste YouTube Video URL here (e.g., https://youtube.com/watch?v=...)"
+                    value={youtubeUrl}
+                    onChange={(e) => setYoutubeUrl(e.target.value)}
+                    disabled={loading}
+                  />
+                  <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+                    <div className="w-full sm:w-72 text-sm text-muted-foreground flex items-center">
+                      AI will dynamically determine the best story length.
+                    </div>
+                    <Button type="submit" disabled={loading} className="w-full sm:w-auto">
+                      {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      {loading ? 'Extracting & Generating...' : 'Generate from YouTube'}
+                    </Button>
+                  </div>
+                </form>
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
 
