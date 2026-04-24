@@ -44,7 +44,7 @@ function createSegment(imagePath: string, audioPath: string, text: string, outpu
       .input(audioPath)
       .outputOptions([
         '-c:v', 'libx264',
-        '-r', '24',
+        '-r', '10',
         '-tune', 'stillimage',
         '-crf', '38',
         '-preset', 'ultrafast',
@@ -55,7 +55,7 @@ function createSegment(imagePath: string, audioPath: string, text: string, outpu
         '-pix_fmt', 'yuv420p',
         '-shortest',
         // Draw text from file with a semi-transparent black box background
-        '-vf', `drawtext=textfile='${safeTextPath}':fontcolor=white:fontsize=36:box=1:boxcolor=black@0.6:boxborderw=10:x=(w-text_w)/2:y=h-text_h-50:line_spacing=10`
+        '-vf', `scale=720:trunc(ow/a/2)*2,drawtext=textfile='${safeTextPath}':fontcolor=white:fontsize=28:box=1:boxcolor=black@0.6:boxborderw=10:x=(w-text_w)/2:y=h-text_h-50:line_spacing=10`
       ])
       .save(outputPath)
       .on('end', () => resolve())
