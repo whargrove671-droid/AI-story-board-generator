@@ -50,7 +50,8 @@ export async function POST(request: NextRequest) {
     const allScenes: Array<{ script: string; imagePrompt: string }> = [];
     let previousContext = "";
 
-    for (let startIdx = 0; startIdx < storyLength; startIdx += batchSize) {
+    let startIdx = 0;
+    while (startIdx < storyLength) {
       const currentBatchSize = Math.min(batchSize, storyLength - startIdx);
       const endIdx = startIdx + currentBatchSize;
 
@@ -108,12 +109,16 @@ ${imagePromptRule}
         console.error('Failed to parse OpenAI JSON response:', e);
       }
       
+      if (!Array.isArray(batchScenes) || batchScenes.length === 0) {
+        throw new Error('Failed to generate scenes in batch or invalid format returned from AI');
+      }
+
       allScenes.push(...batchScenes);
       
-      if (batchScenes.length > 0) {
-        const lastScene = batchScenes[batchScenes.length - 1];
-        previousContext = `Scene ${startIdx + batchScenes.length}: "${lastScene.script.substring(0, 500)}..."`;
-      }
+      const lastScene = batchScenes[batchScenes.length - 1];
+      previousContext = `Scene ${startIdx + batchScenes.length}: "${String(lastScene?.script || '').substring(0, 500)}..."`;
+      
+      startIdx += batchScenes.length;
     }
 
     if (allScenes.length !== storyLength) {
@@ -122,7 +127,7 @@ ${imagePromptRule}
 
     for (let i = 0; i < allScenes.length && i < storyLength; i++) {
       const scene = allScenes[i];
-      const imagePrompt = scene.imagePrompt?.trim() || '';
+      const imagePrompt = typeof scene?.imagePrompt === 'string' ? scene.imagePrompt.trim() : '';
       const imageStatus = imagePrompt ? 'pending' : 'skipped';
 
       const { error } = await supabase.from('scenes').insert({
