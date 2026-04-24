@@ -232,6 +232,7 @@ export function StoryCard({ story, onRefresh }: StoryCardProps) {
   const allImagesDone = story.scenes.length > 0 && story.scenes.every(s => s.image_status === 'completed' || s.image_status === 'skipped');
   const canGenerateVideo = allImagesDone && !story.video_url && story.status !== 'compiling_video';
   const isStuckCompiling = allImagesDone && !story.video_url && story.status === 'compiling_video';
+  const canRegenerateVideo = allImagesDone && !!story.video_url && story.status !== 'compiling_video';
 
   return (
     <Card className="shadow-lg overflow-hidden">
@@ -247,7 +248,7 @@ export function StoryCard({ story, onRefresh }: StoryCardProps) {
           <div className="flex flex-col items-end gap-2">
             {getStatusBadge(story.status)}
             <div className="flex items-center gap-3">
-              {(canGenerateVideo || isStuckCompiling) && hasYouTubeConnected && (
+              {(canGenerateVideo || isStuckCompiling || canRegenerateVideo) && hasYouTubeConnected && (
                 <div className="flex items-center space-x-2 bg-slate-100 dark:bg-slate-900 px-3 py-1.5 rounded-md border">
                   <Switch 
                     id={`yt-upload-${story.id}`} 
@@ -283,6 +284,18 @@ export function StoryCard({ story, onRefresh }: StoryCardProps) {
                 >
                   {(isGeneratingVideo) ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <AlertCircle className="h-4 w-4 mr-1" />}
                   {isGeneratingVideo ? 'Recompiling...' : 'Force Recompile Video'}
+                </Button>
+              )}
+              {canRegenerateVideo && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleGenerateVideo} 
+                  disabled={isGeneratingVideo || isUploadingYouTube}
+                  className="bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-900/30 dark:hover:bg-slate-800/50 dark:border-slate-800/50"
+                >
+                  {(isGeneratingVideo) ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <AlertCircle className="h-4 w-4 mr-1 hidden" />}
+                  {isGeneratingVideo ? 'Recompiling...' : 'Regenerate Video'}
                 </Button>
               )}
               {story.video_url && !story.youtube_url && hasYouTubeConnected && (
