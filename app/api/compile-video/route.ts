@@ -6,6 +6,7 @@ import ffprobeInstaller from '@ffprobe-installer/ffprobe';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
+import https from 'https';
 import { pipeline } from 'stream/promises';
 
 // Set the ffmpeg/ffprobe paths
@@ -74,6 +75,56 @@ function concatenateSegments(segmentPaths: string[], outputPath: string, tmpDir:
       .save(outputPath)
       .on('end', () => resolve())
       .on('error', (err: any) => reject(err));
+  });
+}
+
+function uploadToSupabaseDirectly(
+  supabaseUrl: string, 
+  token: string, 
+  anonKey: string, 
+  bucket: string, 
+  fileName: string, 
+  filePath: string,
+  contentType: string
+): Promise<any> {
+  return new Promise((resolve, reject) => {
+    const stat = fs.statSync(filePath);
+    const url = new URL(`${supabaseUrl}/storage/v1/object/${bucket}/${fileName}`);
+    
+    const req = https.request(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'apikey': anonKey,
+        'Content-Type': contentType,
+        'Content-Length': stat.size,
+        'x-upsert': 'true'
+      },
+      timeout: 3600000, // 1 hour timeout to prevent UND_ERR_HEADERS_TIMEOUT
+    }, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
+          resolve(JSON.parse(data || '{}'));
+        } else {
+          reject(new Error(`Upload failed with status ${res.statusCode}: ${data}`));
+        }
+      });
+    });
+
+    req.on('error', reject);
+    req.on('timeout', () => {
+      req.destroy();
+      reject(new Error('Upload timeout (1 hour limit)'));
+    });
+
+    const fileStream = fs.createReadStream(filePath);
+    fileStream.pipe(req);
+    fileStream.on('error', (err) => {
+      req.destroy();
+      reject(err);
+    });
   });
 }
 
@@ -163,17 +214,20 @@ export async function POST(request: NextRequest) {
     await concatenateSegments(segmentPaths, finalVideoPath, tmpDir);
 
     console.log(`Uploading final video to Supabase Storage...`);
-    const fileBuffer = fs.readFileSync(finalVideoPath);
     const fileName = `story_${storyId}_final.mp4`;
 
-    const { error: uploadError } = await supabase.storage
-      .from('media')
-      .upload(fileName, fileBuffer, {
-        contentType: 'video/mp4',
-        upsert: true,
-      });
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-    if (uploadError) throw uploadError;
+    await uploadToSupabaseDirectly(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      token,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      'media',
+      fileName,
+      finalVideoPath,
+      'video/mp4'
+    );
 
     const { data: publicUrlData } = supabase.storage.from('media').getPublicUrl(fileName);
 
