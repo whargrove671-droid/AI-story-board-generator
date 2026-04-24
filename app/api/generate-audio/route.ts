@@ -61,10 +61,11 @@ export async function POST(request: NextRequest) {
       try {
         console.log(`Generating audio for scene ${scene.id}...`);
         
+        const inputScript = scene.script.replace(/\n+/g, ' ').trim();
         const mp3 = await openai.audio.speech.create({
           model: "tts-1",
           voice: "alloy",
-          input: scene.script,
+          input: inputScript,
         });
 
         const buffer = Buffer.from(await mp3.arrayBuffer());
