@@ -52,25 +52,49 @@ export async function POST(request: NextRequest) {
           .update({ image_status: 'generating' })
           .eq('id', scene.id);
 
-        const response = await fetch('https://api.together.xyz/v1/images/generations', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${process.env.TOGETHER_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'black-forest-labs/FLUX.1-schnell',
-            prompt: `${scene.image_prompt}. Cinematic, high quality, detailed, 16:9 aspect ratio`,
-            width: 1024,
-            height: 576,
-            steps: 4,
-            n: 1,
-          }),
-        });
+        let response;
+        let retries = 3;
+        let attempt = 0;
+        let lastErrorText = '';
+        
+        while (attempt < retries) {
+          response = await fetch('https://api.together.xyz/v1/images/generations', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${process.env.TOGETHER_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'black-forest-labs/FLUX.1-schnell',
+              prompt: `${scene.image_prompt}. Cinematic, high quality, detailed, 16:9 aspect ratio`,
+              width: 1024,
+              height: 576,
+              steps: 4,
+              n: 1,
+            }),
+          });
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`Together AI API error: ${response.status} ${response.statusText} - ${errorText}`);
+          if (response.ok) {
+            break;
+          }
+
+          lastErrorText = await response.text();
+          if (response.status >= 500 || response.status === 429) {
+            console.warn(`Together AI error ${response.status} on attempt ${attempt + 1}: ${lastErrorText}. Retrying...`);
+            attempt++;
+            if (attempt >= retries) {
+              throw new Error(`Together AI API error: ${response.status} ${response.statusText} - ${lastErrorText}`);
+            }
+            // Exponential backoff
+            await new Promise((resolve) => setTimeout(resolve, 2000 * Math.pow(2, attempt - 1)));
+          } else {
+            // Bad request or unauthorized, don't retry
+            throw new Error(`Together AI API error: ${response.status} ${response.statusText} - ${lastErrorText}`);
+          }
+        }
+
+        if (!response || !response.ok) {
+          throw new Error(`Failed to generate image after retries. Last error: ${lastErrorText}`);
         }
 
         const data = await response.json();
