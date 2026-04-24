@@ -44,7 +44,7 @@ function createSegment(imagePath: string, audioPath: string, text: string, outpu
       .input(audioPath)
       .outputOptions([
         '-c:v', 'libx264',
-        '-r', '1',
+        '-r', '24',
         '-tune', 'stillimage',
         '-crf', '38',
         '-preset', 'ultrafast',
