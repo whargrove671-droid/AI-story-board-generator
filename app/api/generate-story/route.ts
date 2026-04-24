@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     }
 
     const imageInterval = storyLength >= 120 ? 6 : 4;
-    const batchSize = 30;
+    const batchSize = 10;
     const allScenes: Array<{ script: string; imagePrompt: string }> = [];
     let previousContext = "";
 
