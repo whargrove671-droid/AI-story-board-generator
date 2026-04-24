@@ -51,6 +51,7 @@ function createSegment(imagePath: string, audioPath: string, text: string, outpu
         '-c:a', 'aac',
         '-ac', '1',
         '-b:a', '32k',
+        '-af', 'silenceremove=start_periods=1:start_threshold=-50dB,areverse,silenceremove=start_periods=1:start_threshold=-50dB,areverse',
         '-pix_fmt', 'yuv420p',
         '-shortest',
         // Draw text from file with a semi-transparent black box background
