@@ -234,6 +234,9 @@ export function StoryCard({ story, onRefresh }: StoryCardProps) {
   const isStuckCompiling = allImagesDone && !story.video_url && story.status === 'compiling_video';
   const canRegenerateVideo = allImagesDone && !!story.video_url && story.status !== 'compiling_video';
 
+  const totalWords = story.scenes.reduce((acc, scene) => acc + (scene.script ? scene.script.split(/\s+/).length : 0), 0);
+  const estimatedMinutes = Math.max(1, Math.ceil(totalWords / 150));
+
   return (
     <Card className="shadow-lg overflow-hidden">
       <CardHeader className="border-b bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900">
@@ -242,7 +245,7 @@ export function StoryCard({ story, onRefresh }: StoryCardProps) {
             <CardTitle className="text-xl">{story.title}</CardTitle>
             <p className="text-sm text-muted-foreground">
               Created {new Date(story.created_at).toLocaleDateString()} at{' '}
-              {new Date(story.created_at).toLocaleTimeString()}
+              {new Date(story.created_at).toLocaleTimeString()} • {story.scenes.length} Scenes (~{estimatedMinutes} min video)
             </p>
           </div>
           <div className="flex flex-col items-end gap-2">
