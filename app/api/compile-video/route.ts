@@ -58,7 +58,7 @@ function createSegment(imagePath: string, audioPath: string, text: string, outpu
         '-pix_fmt', 'yuv420p',
         '-shortest',
         // Strip trailing and leading silence from the TTS audio
-        '-af', 'silenceremove=start_periods=1:start_duration=0:start_threshold=-40dB,areverse,silenceremove=start_periods=1:start_duration=0:start_threshold=-40dB,areverse',
+        '-af', 'silenceremove=start_periods=1:start_duration=0.05:start_threshold=-25dB,areverse,silenceremove=start_periods=1:start_duration=0.05:start_threshold=-25dB,areverse',
         // Draw text from file with a semi-transparent black box background
         '-vf', `drawtext=textfile='${safeTextPath}':fontcolor=white:fontsize=36:box=1:boxcolor=black@0.6:boxborderw=10:x=(w-text_w)/2:y=h-text_h-50:line_spacing=10`
       ])
