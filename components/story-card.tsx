@@ -655,11 +655,7 @@ export function StoryCard({ story, onRefresh }: StoryCardProps) {
                   </div>
                 )}
 
-                {scene.image_prompt && scene.image_prompt.trim() !== '' && (
-                  <div className="text-xs text-muted-foreground bg-slate-100 dark:bg-slate-900 rounded p-3 border">
-                    <span className="font-medium">Image Prompt:</span> {scene.image_prompt}
-                  </div>
-                )}
+
               </div>
             ))}
           </div>
