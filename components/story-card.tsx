@@ -261,11 +261,6 @@ export function StoryCard({ story, onRefresh }: StoryCardProps) {
   const isGeneratingImages = story.scenes.some(s => s.image_status === 'generating');
   const allImagesDone = story.scenes.length > 0 && story.scenes.every(s => s.image_status === 'completed' || s.image_status === 'skipped');
   const canGenerateVideo = allImagesDone && !story.video_url && story.status !== 'compiling_video';
-  const isStuckCompiling = allImagesDone && !story.video_url && story.status === 'compiling_video';
-  const canRegenerateVideo = allImagesDone && !!story.video_url && story.status !== 'compiling_video';
-
-  const totalWords = story.scenes.reduce((acc, scene) => acc + (scene.script ? scene.script.split(/\s+/).length : 0), 0);
-  const estimatedMinutes = Math.max(1, Math.ceil(totalWords / 150));
 
   return (
     <Card className="shadow-lg overflow-hidden">
@@ -275,13 +270,13 @@ export function StoryCard({ story, onRefresh }: StoryCardProps) {
             <CardTitle className="text-xl">{story.title}</CardTitle>
             <p className="text-sm text-muted-foreground">
               Created {new Date(story.created_at).toLocaleDateString()} at{' '}
-              {new Date(story.created_at).toLocaleTimeString()} • {story.scenes.length} Scenes (~{estimatedMinutes} min video)
+              {new Date(story.created_at).toLocaleTimeString()}
             </p>
           </div>
           <div className="flex flex-col items-end gap-2">
             {getStatusBadge(story.status)}
             <div className="flex items-center gap-3">
-              {(canGenerateVideo || isStuckCompiling || canRegenerateVideo) && hasYouTubeConnected && (
+              {canGenerateVideo && hasYouTubeConnected && (
                 <div className="flex items-center space-x-2 bg-slate-100 dark:bg-slate-900 px-3 py-1.5 rounded-md border">
                   <Switch 
                     id={`yt-upload-${story.id}`} 
@@ -305,30 +300,6 @@ export function StoryCard({ story, onRefresh }: StoryCardProps) {
                 >
                   {(isGeneratingVideo || isUploadingYouTube) ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <AlertCircle className="h-4 w-4 mr-1 hidden" />}
                   {isUploadingYouTube ? 'Uploading to YouTube...' : 'Generate Video'}
-                </Button>
-              )}
-              {isStuckCompiling && (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleGenerateVideo} 
-                  disabled={isGeneratingVideo || isUploadingYouTube}
-                  className="bg-orange-50 hover:bg-orange-100 text-orange-600 border-orange-200 dark:bg-orange-950/30 dark:hover:bg-orange-900/50 dark:border-orange-900/50"
-                >
-                  {(isGeneratingVideo) ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <AlertCircle className="h-4 w-4 mr-1" />}
-                  {isGeneratingVideo ? 'Recompiling...' : 'Force Recompile Video'}
-                </Button>
-              )}
-              {canRegenerateVideo && (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleGenerateVideo} 
-                  disabled={isGeneratingVideo || isUploadingYouTube}
-                  className="bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-900/30 dark:hover:bg-slate-800/50 dark:border-slate-800/50"
-                >
-                  {(isGeneratingVideo) ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <AlertCircle className="h-4 w-4 mr-1 hidden" />}
-                  {isGeneratingVideo ? 'Recompiling...' : 'Regenerate Video'}
                 </Button>
               )}
               {story.video_url && !story.youtube_url && hasYouTubeConnected && (
