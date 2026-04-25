@@ -337,7 +337,7 @@ export default function DashboardPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="5">Short (5 Scenes, 5 Images)</SelectItem>
-                      <SelectItem value="20">Medium (20 Scenes, 5 Images)</SelectItem>
+                      <SelectItem value="40">Medium (40 Scenes, 10 Images)</SelectItem>
                       <SelectItem value="120">1 Hour (120 Scenes, Sparse Images)</SelectItem>
                     </SelectContent>
                   </Select>
