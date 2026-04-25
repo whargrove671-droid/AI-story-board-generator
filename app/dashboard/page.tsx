@@ -154,16 +154,24 @@ export default function DashboardPage() {
       setStoryIdea('');
       loadStories();
 
-      // Trigger image generation from the client to prevent server timeout/kill
-      fetch('/api/generate-images', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ storyId: story.id }),
-      }).then(() => {
-        loadStories();
-      }).catch((err) => {
-        console.error('Failed to trigger image generation:', err);
-      });
+      // Trigger image generation recursively to prevent server timeout/kill
+      const generateImages = async () => {
+        try {
+          const res = await fetch('/api/generate-images', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ storyId: story.id }),
+          });
+          const data = await res.json();
+          loadStories();
+          if (data.morePending) {
+            generateImages(); // fetch the next image
+          }
+        } catch (err) {
+          console.error('Failed to trigger image generation:', err);
+        }
+      };
+      generateImages();
     } catch (error: any) {
       toast({
         title: 'Error',
