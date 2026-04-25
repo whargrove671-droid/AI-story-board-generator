@@ -61,10 +61,17 @@ export async function POST(request: NextRequest) {
       try {
         console.log(`Generating audio for scene ${scene.id}...`);
         
+        // Clean up any leaked image prompts from the script before TTS reads it
+        let cleanText = scene.script.replace(/\[image prompt.*?\]/ig, '');
+        cleanText = cleanText.replace(/\(image prompt.*?\)/ig, '');
+        cleanText = cleanText.replace(/\*\*image prompt.*?\*\*/ig, '');
+        cleanText = cleanText.replace(/image prompt:.*$/igm, '');
+        cleanText = cleanText.trim();
+
         const mp3 = await openai.audio.speech.create({
           model: "tts-1",
           voice: "alloy",
-          input: scene.script,
+          input: cleanText,
         });
 
         const buffer = Buffer.from(await mp3.arrayBuffer());
