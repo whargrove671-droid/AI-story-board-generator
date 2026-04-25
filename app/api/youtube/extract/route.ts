@@ -129,20 +129,33 @@ ${imagePromptRule}
 - Make scenes cinematic and engaging
 - When providing an image prompt, ensure it works well with AI image generators`;
 
-      const completion = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        response_format: { type: 'json_object' },
-        messages: [
-          {
-            role: 'system',
-            content:
-              `You are a creative storytelling assistant that generates engaging narratives with sparse image prompts. You MUST return a JSON object containing a "scenes" array. Each object in the array must have "script" and "imagePrompt" string fields.`,
-          },
-          { role: 'user', content: prompt },
-        ],
-        temperature: 0.8,
-        max_tokens: 16000,
-      });
+      let completion: any;
+      let retries = 3;
+      while (retries > 0) {
+        try {
+          completion = await openai.chat.completions.create({
+            model: 'gpt-4o-mini',
+            response_format: { type: 'json_object' },
+            messages: [
+              {
+                role: 'system',
+                content:
+                  `You are a creative storytelling assistant that generates engaging narratives with sparse image prompts. You MUST return a JSON object containing a "scenes" array. Each object in the array must have "script" and "imagePrompt" string fields.`,
+              },
+              { role: 'user', content: prompt },
+            ],
+            temperature: 0.8,
+            max_tokens: 16000,
+          });
+          break; // success
+        } catch (err: any) {
+          retries--;
+          if (retries === 0) throw err;
+          console.error(`OpenAI request failed, retrying... (${3 - retries}/3)`, err.message);
+          // Wait before retrying (exponential backoff: 2s, 4s)
+          await new Promise(resolve => setTimeout(resolve, (3 - retries) * 2000));
+        }
+      }
 
       const generatedText = completion.choices[0]?.message?.content;
 
