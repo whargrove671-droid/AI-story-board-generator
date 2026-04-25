@@ -43,8 +43,11 @@ function createSegment(imagePath: string, audioPath: string, text: string, outpu
       .input(audioPath)
       .outputOptions([
         '-c:v', 'libx264',
+        '-r', '5',              // Lower framerate for static image
+        '-crf', '32',           // Aggressive compression
+        '-preset', 'veryfast',  // Faster encoding
         '-c:a', 'aac',
-        '-b:a', '192k',
+        '-b:a', '48k',          // Lower audio bitrate for voice
         '-pix_fmt', 'yuv420p',
         '-shortest',
         // Draw text from file with a semi-transparent black box background
