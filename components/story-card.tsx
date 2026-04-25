@@ -473,7 +473,8 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
           </div>
           <div className="flex flex-col items-end gap-2">
             {getStatusBadge(story.status)}
-            <div className="flex items-center gap-3">
+            {isExpanded && (
+              <div className="flex items-center gap-3 flex-wrap justify-end mt-2 sm:mt-0">
               {(youtubeMainConnected || youtubeSubConnected) && (
                 <div className="flex items-center space-x-2 bg-slate-100 dark:bg-slate-900 px-3 py-1.5 rounded-md border">
                   <Select value={uploadChannel} onValueChange={(val: 'main' | 'sub') => setUploadChannel(val)}>
@@ -590,6 +591,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
                 {story.status === 'failed' || story.status === 'generating' || story.scenes.some(s => s.image_status === 'failed' || s.image_status === 'generating') ? 'Cancel & Delete' : 'Delete'}
               </Button>
             </div>
+            )}
           </div>
         </div>
       </CardHeader>
