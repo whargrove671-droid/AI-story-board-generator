@@ -143,7 +143,14 @@ export async function POST(request: NextRequest) {
 
     const segmentPaths: string[] = [];
     const downloadedImages = new Map<string, string>();
+    
     let lastImageURL = scenes[0].image_url;
+    if (!lastImageURL) {
+      const firstAvailable = scenes.find(s => s.image_url);
+      if (firstAvailable) {
+        lastImageURL = firstAvailable.image_url;
+      }
+    }
 
     // Build segments
     for (let i = 0; i < scenes.length; i++) {
