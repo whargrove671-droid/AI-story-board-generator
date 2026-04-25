@@ -3,7 +3,7 @@ const https = require('https');
 async function testTogether() {
   const postData = JSON.stringify({
     model: 'black-forest-labs/FLUX.1-schnell',
-    prompt: 'A quick test prompt. Cinematic, high quality, detailed, 16:9 aspect ratio',
+    prompt: 'A'.repeat(2000),
     width: 1024,
     height: 576,
     steps: 4,
