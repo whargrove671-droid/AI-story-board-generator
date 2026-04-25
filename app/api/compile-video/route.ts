@@ -188,7 +188,14 @@ export async function POST(request: NextRequest) {
 
     const segmentPaths: string[] = [];
     const downloadedImages = new Map<string, string>();
-    let lastImageURL = scenes[0].image_url;
+    
+    // Find the first available image URL to use as the initial fallback
+    // In case the AI skipped generating an image for scene 1
+    let lastImageURL = scenes.find(s => s.image_url)?.image_url;
+    
+    if (!lastImageURL) {
+      return NextResponse.json({ error: 'No images generated for this story.' }, { status: 400 });
+    }
 
     // Build segments
     for (let i = 0; i < scenes.length; i++) {
