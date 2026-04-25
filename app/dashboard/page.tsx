@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader as Loader2, LogOut, Sparkles, Image as ImageIcon, BookOpen, Youtube } from 'lucide-react';
+import { Loader as Loader2, LogOut, Sparkles, Image as ImageIcon, BookOpen, Youtube, LayoutGrid, LayoutList } from 'lucide-react';
 import { StoryCard } from '@/components/story-card';
 
 type Scene = {
@@ -36,6 +36,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(false);
   const [stories, setStories] = useState<Story[]>([]);
   const [loadingStories, setLoadingStories] = useState(true);
+  const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
   const [youtubeMainConnected, setYoutubeMainConnected] = useState(false);
   const [youtubeSubConnected, setYoutubeSubConnected] = useState(false);
   const router = useRouter();
@@ -396,11 +397,31 @@ export default function DashboardPage() {
         </Card>
 
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <h2 className="text-2xl font-bold flex items-center gap-2">
               <ImageIcon className="h-6 w-6" />
               Your Stories
             </h2>
+            <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-900 p-1 rounded-lg border w-max">
+              <Button 
+                variant={viewMode === 'card' ? 'secondary' : 'ghost'} 
+                size="sm" 
+                onClick={() => setViewMode('card')}
+                className="h-8 px-3"
+              >
+                <LayoutGrid className="w-4 h-4 mr-2" />
+                Cards
+              </Button>
+              <Button 
+                variant={viewMode === 'list' ? 'secondary' : 'ghost'} 
+                size="sm" 
+                onClick={() => setViewMode('list')}
+                className="h-8 px-3"
+              >
+                <LayoutList className="w-4 h-4 mr-2" />
+                List
+              </Button>
+            </div>
           </div>
 
           {loadingStories ? (
@@ -420,7 +441,7 @@ export default function DashboardPage() {
           ) : (
             <div className="space-y-6">
               {stories.map((story) => (
-                <StoryCard key={story.id} story={story} onRefresh={loadStories} />
+                <StoryCard key={story.id} story={story} onRefresh={loadStories} viewMode={viewMode} />
               ))}
             </div>
           )}
