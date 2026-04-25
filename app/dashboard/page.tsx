@@ -154,21 +154,31 @@ export default function DashboardPage() {
       setStoryIdea('');
       loadStories();
 
-      // Trigger image generation recursively to prevent server timeout/kill
+      // Trigger image generation robustly to prevent server timeout/kill and handle transient errors
       const generateImages = async () => {
-        try {
-          const res = await fetch('/api/generate-images', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ storyId: story.id }),
-          });
-          const data = await res.json();
-          loadStories();
-          if (data.morePending) {
-            generateImages(); // fetch the next image
+        let hasMore = true;
+        let errorCount = 0;
+        
+        while (hasMore && errorCount < 3) {
+          try {
+            const res = await fetch('/api/generate-images', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ storyId: story.id }),
+            });
+            if (!res.ok) throw new Error('Failed to generate image');
+            
+            const data = await res.json();
+            loadStories();
+            hasMore = data.morePending;
+            errorCount = 0; // reset on success
+          } catch (err) {
+            console.error('Failed to trigger image generation:', err);
+            errorCount++;
+            if (errorCount < 3) {
+              await new Promise(r => setTimeout(r, 2000));
+            }
           }
-        } catch (err) {
-          console.error('Failed to trigger image generation:', err);
         }
       };
       generateImages();
@@ -232,21 +242,31 @@ export default function DashboardPage() {
       setYoutubeUrl('');
       loadStories();
 
-      // Trigger image generation recursively
+      // Trigger image generation robustly to prevent server timeout/kill and handle transient errors
       const generateImages = async () => {
-        try {
-          const res = await fetch('/api/generate-images', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ storyId: story.id }),
-          });
-          const data = await res.json();
-          loadStories();
-          if (data.morePending) {
-            generateImages(); // fetch the next image
+        let hasMore = true;
+        let errorCount = 0;
+        
+        while (hasMore && errorCount < 3) {
+          try {
+            const res = await fetch('/api/generate-images', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ storyId: story.id }),
+            });
+            if (!res.ok) throw new Error('Failed to generate image');
+            
+            const data = await res.json();
+            loadStories();
+            hasMore = data.morePending;
+            errorCount = 0; // reset on success
+          } catch (err) {
+            console.error('Failed to trigger image generation:', err);
+            errorCount++;
+            if (errorCount < 3) {
+              await new Promise(r => setTimeout(r, 2000));
+            }
           }
-        } catch (err) {
-          console.error('Failed to trigger image generation:', err);
         }
       };
       generateImages();

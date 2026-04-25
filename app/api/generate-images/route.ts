@@ -3,7 +3,7 @@ import { createServerClient } from '@supabase/ssr';
 
 export async function POST(request: NextRequest) {
   try {
-    const { storyId } = await request.json();
+    const { storyId, retryFailed } = await request.json();
 
     if (!storyId) {
       return NextResponse.json(
@@ -26,6 +26,14 @@ export async function POST(request: NextRequest) {
         },
       }
     );
+
+    if (retryFailed) {
+      await supabase
+        .from('scenes')
+        .update({ image_status: 'pending' })
+        .eq('story_id', storyId)
+        .eq('image_status', 'failed');
+    }
 
     const { data: scenes, error: scenesError } = await supabase
       .from('scenes')

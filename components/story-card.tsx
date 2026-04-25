@@ -148,18 +148,48 @@ export function StoryCard({ story, onRefresh }: StoryCardProps) {
   const handleRetryImages = async () => {
     try {
       setIsRetrying(true);
-      const response = await fetch('/api/generate-images', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ storyId: story.id }),
-      });
-      if (!response.ok) throw new Error('Failed to restart image generation');
-      
       toast({
         title: 'Started Image Generation',
         description: 'Image generation is running...',
       });
-      onRefresh();
+      
+      let hasMore = true;
+      let errorCount = 0;
+      let isFirstTry = true;
+      
+      while (hasMore && errorCount < 3) {
+        try {
+          const response = await fetch('/api/generate-images', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ storyId: story.id, retryFailed: isFirstTry }),
+          });
+          
+          isFirstTry = false;
+          
+          if (!response.ok) {
+            throw new Error(`Failed to generate image: ${response.status}`);
+          }
+          
+          const data = await response.json();
+          onRefresh(); // Refresh UI to show the new image or status
+          hasMore = data.morePending;
+          errorCount = 0; // reset on success
+        } catch (err) {
+          console.error('Image generation error:', err);
+          errorCount++;
+          if (errorCount >= 3) throw err;
+          // Wait a bit before retrying
+          await new Promise(r => setTimeout(r, 2000));
+        }
+      }
+      
+      if (!hasMore) {
+        toast({
+          title: 'Completed',
+          description: 'All images generated successfully.',
+        });
+      }
     } catch (error: any) {
       toast({
         title: 'Error',
