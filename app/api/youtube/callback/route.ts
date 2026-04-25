@@ -46,13 +46,20 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const state = searchParams.get('state') || 'main';
+
     if (tokens.refresh_token) {
+      const updateData: any = { user_id: user.id };
+      
+      if (state === 'sub') {
+        updateData.youtube_sub_refresh_token = tokens.refresh_token;
+      } else {
+        updateData.youtube_refresh_token = tokens.refresh_token;
+      }
+
       const { error } = await supabase
         .from('user_settings')
-        .upsert({ 
-          user_id: user.id, 
-          youtube_refresh_token: tokens.refresh_token 
-        });
+        .upsert(updateData);
 
       if (error) throw error;
     }

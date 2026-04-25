@@ -8,6 +8,9 @@ const oauth2Client = new google.auth.OAuth2(
 );
 
 export async function GET(request: NextRequest) {
+  const searchParams = request.nextUrl.searchParams;
+  const channel = searchParams.get('channel') || 'main'; // 'main' or 'sub'
+
   // Generate a url that asks permissions for YouTube upload
   const scopes = [
     'https://www.googleapis.com/auth/youtube.upload'
@@ -19,7 +22,9 @@ export async function GET(request: NextRequest) {
     // If you only need one scope you can pass it as a string
     scope: scopes,
     // Force prompt to ensure we always get a refresh token
-    prompt: 'consent'
+    prompt: 'consent',
+    // Pass channel type as state to remember it in the callback
+    state: channel,
   });
 
   return NextResponse.redirect(url);
