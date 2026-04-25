@@ -64,6 +64,7 @@ export async function POST(request: NextRequest) {
     // 2. Determine Optimal Story Length
     const lengthPrompt = `You are a creative storytelling assistant.
 Given the following YouTube video transcript, estimate the optimal number of scenes needed to turn this into a comprehensive storyboard narrative without omitting important details.
+The minimum number of scenes should be at least 70 scenes.
 Each scene in the narrative will be 2-3 detailed paragraphs.
 Return ONLY a valid JSON object with a single numeric field "storyLength".
 
@@ -78,14 +79,14 @@ ${fullTranscript.substring(0, 15000)}`;
     });
 
     const lengthResult = lengthCompletion.choices[0]?.message?.content;
-    let storyLength = 5; // default fallback
+    let storyLength = 70; // default fallback
     try {
       const parsedLength = JSON.parse(lengthResult || '{}');
       if (typeof parsedLength.storyLength === 'number') {
-        storyLength = Math.max(1, parsedLength.storyLength);
+        storyLength = Math.max(70, parsedLength.storyLength);
       }
     } catch (e) {
-      console.error('Failed to parse optimal story length, defaulting to 5', e);
+      console.error('Failed to parse optimal story length, defaulting to 70', e);
     }
 
     console.log(`Optimal story length determined as: ${storyLength}`);
