@@ -5,10 +5,11 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader as Loader2, LogOut, Sparkles, Image as ImageIcon, BookOpen } from 'lucide-react';
+import { Loader as Loader2, LogOut, Sparkles, Image as ImageIcon, BookOpen, Youtube } from 'lucide-react';
 import { StoryCard } from '@/components/story-card';
 
 type Scene = {
@@ -30,6 +31,7 @@ type Story = {
 
 export default function DashboardPage() {
   const [storyIdea, setStoryIdea] = useState('');
+  const [youtubeUrl, setYoutubeUrl] = useState('');
   const [storyLength, setStoryLength] = useState('5');
   const [loading, setLoading] = useState(false);
   const [stories, setStories] = useState<Story[]>([]);
@@ -358,6 +360,35 @@ export default function DashboardPage() {
                 <Button type="submit" disabled={loading} className="w-full sm:w-auto">
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   {loading ? 'Generating Story...' : 'Generate Story'}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+
+        <Card className="mb-8 shadow-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Youtube className="h-5 w-5 text-red-500" />
+              Generate from YouTube Video
+            </CardTitle>
+            <CardDescription>
+              Paste a YouTube URL to automatically extract the narration and turn it into a storyboard
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleGenerateFromYoutube} className="space-y-4">
+              <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+                <Input
+                  placeholder="https://www.youtube.com/watch?v=..."
+                  value={youtubeUrl}
+                  onChange={(e) => setYoutubeUrl(e.target.value)}
+                  disabled={loading}
+                  className="flex-1"
+                />
+                <Button type="submit" disabled={loading} className="w-full sm:w-auto whitespace-nowrap bg-red-500 hover:bg-red-600 text-white">
+                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {loading ? 'Generating...' : 'Extract & Generate'}
                 </Button>
               </div>
             </form>
