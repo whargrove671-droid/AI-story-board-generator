@@ -24,10 +24,17 @@ async function downloadFile(url: string, outputPath: string) {
 // Helper function to create a video segment from image and audio
 function createSegment(imagePath: string, audioPath: string, text: string, outputPath: string, tmpDir: string, index: number): Promise<void> {
   return new Promise((resolve, reject) => {
+    // Clean up any leaked image prompts from the script
+    let cleanText = text.replace(/\[image prompt.*?\]/ig, '');
+    cleanText = cleanText.replace(/\(image prompt.*?\)/ig, '');
+    cleanText = cleanText.replace(/\*\*image prompt.*?\*\*/ig, '');
+    cleanText = cleanText.replace(/image prompt:.*$/igm, '');
+    cleanText = cleanText.trim();
+
     // Break into lines roughly every 50 characters (simple word wrap)
-    const wrappedText = text
+    const wrappedText = cleanText
       .replace(/\n/g, ' ')
-      .match(/(?=.{1,50}\s|.{1,50}$)[^ \n]+(?: [^ \n]+)*/g)?.join('\n') || text;
+      .match(/(?=.{1,50}\s|.{1,50}$)[^ \n]+(?: [^ \n]+)*/g)?.join('\n') || cleanText;
 
     // Write text to a temporary file to avoid ffmpeg escaping nightmares
     const textFileName = `text_${index}.txt`;
@@ -50,6 +57,8 @@ function createSegment(imagePath: string, audioPath: string, text: string, outpu
         '-b:a', '48k',          // Lower audio bitrate for voice
         '-pix_fmt', 'yuv420p',
         '-shortest',
+        // Strip trailing and leading silence from the TTS audio
+        '-af', 'silenceremove=start_periods=1:start_duration=0:start_threshold=-40dB,areverse,silenceremove=start_periods=1:start_duration=0:start_threshold=-40dB,areverse',
         // Draw text from file with a semi-transparent black box background
         '-vf', `drawtext=textfile='${safeTextPath}':fontcolor=white:fontsize=36:box=1:boxcolor=black@0.6:boxborderw=10:x=(w-text_w)/2:y=h-text_h-50:line_spacing=10`
       ])
