@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Loader as Loader2, CircleAlert as AlertCircle, CircleCheck as CheckCircle, Trash2, Youtube } from 'lucide-react';
+import { Loader as Loader2, CircleAlert as AlertCircle, CircleCheck as CheckCircle, Trash2, Youtube, BookOpen } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
@@ -41,6 +41,7 @@ export function StoryCard({ story, onRefresh }: StoryCardProps) {
   const [isRetrying, setIsRetrying] = useState(false);
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
   const [isUploadingYouTube, setIsUploadingYouTube] = useState(false);
+  const [isContinuing, setIsContinuing] = useState(false);
   const [autoUpload, setAutoUpload] = useState(false);
   const [hasYouTubeConnected, setHasYouTubeConnected] = useState(false);
   const supabase = createClient();
@@ -201,6 +202,95 @@ export function StoryCard({ story, onRefresh }: StoryCardProps) {
     }
   };
 
+  const handleContinueSeries = async () => {
+    try {
+      setIsContinuing(true);
+      toast({ title: 'Continuing Story', description: 'Generating the next part of the series...' });
+
+      // Determine new title (e.g., "Story Title (Part 2)")
+      let newTitle = story.title;
+      const partMatch = story.title.match(/(.*) \(Part (\d+)\)$/);
+      if (partMatch) {
+        const nextPart = parseInt(partMatch[2], 10) + 1;
+        newTitle = `${partMatch[1]} (Part ${nextPart})`;
+      } else {
+        newTitle = `${story.title} (Part 2)`;
+      }
+
+      // Gather context
+      const lastScenes = story.scenes.slice(-4).map(s => s.script).join('\n\n');
+      const continuationIdea = `This is a continuation of the previous part. Continue the narrative seamlessly. Here is the end of the previous part for context:\n\n${lastScenes}`;
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const { data: newStory, error: storyError } = await supabase
+        .from('stories')
+        .insert({
+          user_id: user.id,
+          title: newTitle,
+          status: 'generating',
+        })
+        .select()
+        .single();
+
+      if (storyError) throw storyError;
+
+      const response = await fetch('/api/generate-story', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ storyIdea: continuationIdea, storyId: newStory.id, storyLength: 40 }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to generate continuation');
+      }
+
+      toast({
+        title: 'Success',
+        description: 'Story text generated! Now generating images...',
+      });
+
+      onRefresh();
+
+      // Trigger image generation robustly
+      let hasMore = true;
+      let errorCount = 0;
+      
+      while (hasMore && errorCount < 3) {
+        try {
+          const res = await fetch('/api/generate-images', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ storyId: newStory.id }),
+          });
+          if (!res.ok) throw new Error('Failed to generate image');
+          
+          const data = await res.json();
+          onRefresh();
+          hasMore = data.morePending;
+          errorCount = 0; // reset on success
+        } catch (err) {
+          console.error('Failed to trigger image generation:', err);
+          errorCount++;
+          if (errorCount < 3) {
+            await new Promise(r => setTimeout(r, 2000));
+          }
+        }
+      }
+
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to continue story',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsContinuing(false);
+    }
+  };
+
   const handleDelete = async () => {
     try {
       setIsDeleting(true);
@@ -261,6 +351,12 @@ export function StoryCard({ story, onRefresh }: StoryCardProps) {
   const isGeneratingImages = story.scenes.some(s => s.image_status === 'generating');
   const allImagesDone = story.scenes.length > 0 && story.scenes.every(s => s.image_status === 'completed' || s.image_status === 'skipped');
   const canGenerateVideo = allImagesDone && !story.video_url && story.status !== 'compiling_video';
+  const isStuckCompiling = allImagesDone && !story.video_url && story.status === 'compiling_video';
+  const canRegenerateVideo = allImagesDone && !!story.video_url && story.status !== 'compiling_video';
+  
+  const canContinueSeries = story.scenes.length === 40 && allImagesDone && story.status !== 'compiling_video';
+
+  const totalWords = story.scenes.reduce((acc, scene) => acc + (scene.script ? scene.script.split(/\s+/).length : 0), 0);
 
   return (
     <Card className="shadow-lg overflow-hidden">
@@ -300,6 +396,30 @@ export function StoryCard({ story, onRefresh }: StoryCardProps) {
                 >
                   {(isGeneratingVideo || isUploadingYouTube) ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <AlertCircle className="h-4 w-4 mr-1 hidden" />}
                   {isUploadingYouTube ? 'Uploading to YouTube...' : 'Generate Video'}
+                </Button>
+              )}
+              {canRegenerateVideo && (
+                <Button 
+                  variant="default" 
+                  size="sm" 
+                  onClick={handleGenerateVideo} 
+                  disabled={isGeneratingVideo || isUploadingYouTube}
+                  className="bg-purple-600 hover:bg-purple-700 text-white"
+                >
+                  {(isGeneratingVideo || isUploadingYouTube) ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <AlertCircle className="h-4 w-4 mr-1 hidden" />}
+                  {isGeneratingVideo ? 'Recompiling...' : 'Regenerate Video'}
+                </Button>
+              )}
+              {canContinueSeries && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleContinueSeries} 
+                  disabled={isContinuing || isGeneratingVideo}
+                  className="bg-blue-50 hover:bg-blue-100 text-blue-600 border-blue-200 dark:bg-blue-950/30 dark:hover:bg-blue-900/50 dark:border-blue-900/50"
+                >
+                  {isContinuing ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <BookOpen className="h-4 w-4 mr-1" />}
+                  {isContinuing ? 'Continuing...' : 'Continue Series'}
                 </Button>
               )}
               {story.video_url && !story.youtube_url && hasYouTubeConnected && (
