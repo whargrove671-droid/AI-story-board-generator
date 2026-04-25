@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Loader as Loader2, CircleAlert as AlertCircle, CircleCheck as CheckCircle, Trash2, Youtube, BookOpen } from 'lucide-react';
+import { Loader as Loader2, CircleAlert as AlertCircle, CircleCheck as CheckCircle, Trash2, Youtube, BookOpen, Download } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
@@ -42,6 +42,7 @@ export function StoryCard({ story, onRefresh }: StoryCardProps) {
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
   const [isUploadingYouTube, setIsUploadingYouTube] = useState(false);
   const [isContinuing, setIsContinuing] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const [autoUpload, setAutoUpload] = useState(false);
   const [hasYouTubeConnected, setHasYouTubeConnected] = useState(false);
   const supabase = createClient();
@@ -143,6 +144,31 @@ export function StoryCard({ story, onRefresh }: StoryCardProps) {
       toast({ title: 'Error', description: error.message || 'Failed to upload to YouTube', variant: 'destructive' });
     } finally {
       setIsUploadingYouTube(false);
+    }
+  };
+
+  const handleDownload = async () => {
+    if (!story.video_url) return;
+    try {
+      setIsDownloading(true);
+      toast({ title: 'Downloading', description: 'Preparing your video download...' });
+      const response = await fetch(story.video_url);
+      if (!response.ok) throw new Error('Failed to fetch video');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${story.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp4`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast({ title: 'Success', description: 'Video download started!' });
+    } catch (error: any) {
+      // Fallback if fetch fails (e.g., CORS issues)
+      window.open(story.video_url, '_blank');
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -420,6 +446,18 @@ export function StoryCard({ story, onRefresh }: StoryCardProps) {
                 >
                   {isContinuing ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <BookOpen className="h-4 w-4 mr-1" />}
                   {isContinuing ? 'Continuing...' : 'Continue Series'}
+                </Button>
+              )}
+              {story.video_url && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleDownload} 
+                  disabled={isDownloading}
+                  className="bg-green-50 hover:bg-green-100 text-green-600 border-green-200 dark:bg-green-950/30 dark:hover:bg-green-900/50 dark:border-green-900/50"
+                >
+                  {isDownloading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Download className="h-4 w-4 mr-1" />}
+                  {isDownloading ? 'Downloading...' : 'Download Video'}
                 </Button>
               )}
               {story.video_url && !story.youtube_url && hasYouTubeConnected && (
