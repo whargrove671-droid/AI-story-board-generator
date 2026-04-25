@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Loader as Loader2, CircleAlert as AlertCircle, CircleCheck as CheckCircle, Trash2, Youtube, BookOpen, Download } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -45,7 +46,9 @@ export function StoryCard({ story, onRefresh }: StoryCardProps) {
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [autoUpload, setAutoUpload] = useState(false);
-  const [hasYouTubeConnected, setHasYouTubeConnected] = useState(false);
+  const [youtubeMainConnected, setYoutubeMainConnected] = useState(false);
+  const [youtubeSubConnected, setYoutubeSubConnected] = useState(false);
+  const [uploadChannel, setUploadChannel] = useState<'main' | 'sub'>('main');
   const supabase = createClient();
   const { toast } = useToast();
 
@@ -54,9 +57,15 @@ export function StoryCard({ story, onRefresh }: StoryCardProps) {
     const checkYt = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      const { data } = await supabase.from('user_settings').select('youtube_refresh_token').eq('user_id', user.id).single();
-      if (data && data.youtube_refresh_token) {
-        setHasYouTubeConnected(true);
+      const { data } = await supabase.from('user_settings').select('youtube_refresh_token, youtube_sub_refresh_token').eq('user_id', user.id).single();
+      if (data) {
+        if (data.youtube_refresh_token) setYoutubeMainConnected(true);
+        if (data.youtube_sub_refresh_token) setYoutubeSubConnected(true);
+        
+        // If main is not connected but sub is, default to sub
+        if (!data.youtube_refresh_token && data.youtube_sub_refresh_token) {
+          setUploadChannel('sub');
+        }
       }
     };
     checkYt();
@@ -98,12 +107,12 @@ export function StoryCard({ story, onRefresh }: StoryCardProps) {
       // YouTube Auto-Upload
       if (autoUpload) {
         setIsUploadingYouTube(true);
-        toast({ title: 'YouTube Upload', description: 'Uploading video to YouTube as private...' });
+        toast({ title: 'YouTube Upload', description: `Uploading video to YouTube ${uploadChannel} channel as private...` });
         
         const ytResponse = await fetch('/api/youtube/upload', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ storyId: story.id })
+          body: JSON.stringify({ storyId: story.id, channelType: uploadChannel })
         });
         
         if (!ytResponse.ok) {
@@ -126,12 +135,12 @@ export function StoryCard({ story, onRefresh }: StoryCardProps) {
   const handleUploadYouTube = async () => {
     try {
       setIsUploadingYouTube(true);
-      toast({ title: 'YouTube Upload', description: 'Uploading video to YouTube as private...' });
+      toast({ title: 'YouTube Upload', description: `Uploading video to YouTube ${uploadChannel} channel as private...` });
       
       const ytResponse = await fetch('/api/youtube/upload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ storyId: story.id })
+        body: JSON.stringify({ storyId: story.id, channelType: uploadChannel })
       });
       
       if (!ytResponse.ok) {
@@ -456,8 +465,17 @@ export function StoryCard({ story, onRefresh }: StoryCardProps) {
           <div className="flex flex-col items-end gap-2">
             {getStatusBadge(story.status)}
             <div className="flex items-center gap-3">
-              {canGenerateVideo && hasYouTubeConnected && (
+              {(youtubeMainConnected || youtubeSubConnected) && (
                 <div className="flex items-center space-x-2 bg-slate-100 dark:bg-slate-900 px-3 py-1.5 rounded-md border">
+                  <Select value={uploadChannel} onValueChange={(val: 'main' | 'sub') => setUploadChannel(val)}>
+                    <SelectTrigger className="w-32 h-8 text-xs border-none bg-transparent shadow-none focus:ring-0">
+                      <SelectValue placeholder="Channel" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {youtubeMainConnected && <SelectItem value="main">Main Channel</SelectItem>}
+                      {youtubeSubConnected && <SelectItem value="sub">Sub Channel</SelectItem>}
+                    </SelectContent>
+                  </Select>
                   <Switch 
                     id={`yt-upload-${story.id}`} 
                     checked={autoUpload} 
@@ -466,7 +484,7 @@ export function StoryCard({ story, onRefresh }: StoryCardProps) {
                   />
                   <Label htmlFor={`yt-upload-${story.id}`} className="text-sm cursor-pointer flex items-center gap-1">
                     <Youtube className="w-4 h-4 text-red-500" />
-                    Auto-Upload to YouTube
+                    Auto-Upload
                   </Label>
                 </div>
               )}
@@ -518,17 +536,28 @@ export function StoryCard({ story, onRefresh }: StoryCardProps) {
                   {isDownloading ? (downloadProgress > 0 ? `Downloading ${downloadProgress}%` : 'Starting...') : 'Download Video'}
                 </Button>
               )}
-              {story.video_url && !story.youtube_url && hasYouTubeConnected && (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleUploadYouTube} 
-                  disabled={isUploadingYouTube}
-                  className="bg-red-50 hover:bg-red-100 text-red-600 border-red-200 dark:bg-red-950/30 dark:hover:bg-red-900/50 dark:border-red-900/50"
-                >
-                  {isUploadingYouTube ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Youtube className="h-4 w-4 mr-1" />}
-                  {isUploadingYouTube ? 'Uploading to YouTube...' : 'Upload to YouTube'}
-                </Button>
+              {story.video_url && !story.youtube_url && (youtubeMainConnected || youtubeSubConnected) && (
+                <div className="flex items-center gap-2">
+                  <Select value={uploadChannel} onValueChange={(val: 'main' | 'sub') => setUploadChannel(val)}>
+                    <SelectTrigger className="w-32 h-9 text-xs">
+                      <SelectValue placeholder="Channel" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {youtubeMainConnected && <SelectItem value="main">Main Channel</SelectItem>}
+                      {youtubeSubConnected && <SelectItem value="sub">Sub Channel</SelectItem>}
+                    </SelectContent>
+                  </Select>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleUploadYouTube} 
+                    disabled={isUploadingYouTube}
+                    className="bg-red-50 hover:bg-red-100 text-red-600 border-red-200 dark:bg-red-950/30 dark:hover:bg-red-900/50 dark:border-red-900/50"
+                  >
+                    {isUploadingYouTube ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Youtube className="h-4 w-4 mr-1" />}
+                    {isUploadingYouTube ? 'Uploading...' : 'Upload to YouTube'}
+                  </Button>
+                </div>
               )}
               {hasStuckScenes && !isGeneratingImages && (
                 <Button 
