@@ -43,6 +43,7 @@ export function StoryCard({ story, onRefresh }: StoryCardProps) {
   const [isUploadingYouTube, setIsUploadingYouTube] = useState(false);
   const [isContinuing, setIsContinuing] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState(0);
   const [autoUpload, setAutoUpload] = useState(false);
   const [hasYouTubeConnected, setHasYouTubeConnected] = useState(false);
   const supabase = createClient();
@@ -151,10 +152,66 @@ export function StoryCard({ story, onRefresh }: StoryCardProps) {
     if (!story.video_url) return;
     try {
       setIsDownloading(true);
+      setDownloadProgress(0);
       toast({ title: 'Downloading', description: 'Preparing your video download...' });
+      
       const response = await fetch(story.video_url);
       if (!response.ok) throw new Error('Failed to fetch video');
-      const blob = await response.blob();
+
+      const contentLength = response.headers.get('content-length');
+      const total = contentLength ? parseInt(contentLength, 10) : 0;
+
+      // Feature detect File System Access API
+      if ('showSaveFilePicker' in window) {
+        try {
+          const handle = await (window as any).showSaveFilePicker({
+            suggestedName: `${story.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp4`,
+            types: [{
+              description: 'Video File',
+              accept: { 'video/mp4': ['.mp4'] },
+            }],
+          });
+          
+          const writable = await handle.createWritable();
+          const reader = response.body!.getReader();
+          let loaded = 0;
+          
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            
+            loaded += value.length;
+            if (total) {
+              setDownloadProgress(Math.round((loaded / total) * 100));
+            }
+            await writable.write(value);
+          }
+          
+          await writable.close();
+          toast({ title: 'Success', description: 'Video saved successfully!' });
+          return;
+        } catch (err: any) {
+          // If user cancels the picker, just abort
+          if (err.name === 'AbortError') return;
+          console.error("SaveFilePicker failed, falling back to traditional download:", err);
+        }
+      }
+
+      // Fallback if showSaveFilePicker is not supported or failed
+      const reader = response.body!.getReader();
+      const chunks = [];
+      let loaded = 0;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+        loaded += value.length;
+        if (total) {
+          setDownloadProgress(Math.round((loaded / total) * 100));
+        }
+      }
+      
+      const blob = new Blob(chunks, { type: 'video/mp4' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -163,12 +220,13 @@ export function StoryCard({ story, onRefresh }: StoryCardProps) {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      toast({ title: 'Success', description: 'Video download started!' });
+      
+      toast({ title: 'Success', description: 'Video download complete!' });
     } catch (error: any) {
-      // Fallback if fetch fails (e.g., CORS issues)
       window.open(story.video_url, '_blank');
     } finally {
       setIsDownloading(false);
+      setDownloadProgress(0);
     }
   };
 
@@ -457,7 +515,7 @@ export function StoryCard({ story, onRefresh }: StoryCardProps) {
                   className="bg-green-50 hover:bg-green-100 text-green-600 border-green-200 dark:bg-green-950/30 dark:hover:bg-green-900/50 dark:border-green-900/50"
                 >
                   {isDownloading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Download className="h-4 w-4 mr-1" />}
-                  {isDownloading ? 'Downloading...' : 'Download Video'}
+                  {isDownloading ? (downloadProgress > 0 ? `Downloading ${downloadProgress}%` : 'Starting...') : 'Download Video'}
                 </Button>
               )}
               {story.video_url && !story.youtube_url && hasYouTubeConnected && (
