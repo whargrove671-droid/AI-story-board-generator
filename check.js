@@ -7,7 +7,7 @@ let supabaseKey = '';
 
 envContent.split('\n').forEach(line => {
   if (line.startsWith('NEXT_PUBLIC_SUPABASE_URL=')) supabaseUrl = line.split('=')[1].trim().replace(/^['"]|['"]$/g, '');
-  if (line.startsWith('NEXT_PUBLIC_SUPABASE_ANON_KEY=')) supabaseKey = line.split('=')[1].trim().replace(/^['"]|['"]$/g, '');
+  if (line.startsWith('SUPABASE_SERVICE_ROLE_KEY=')) supabaseKey = line.split('=')[1].trim().replace(/^['"]|['"]$/g, '');
 });
 
 async function checkLatest() {
@@ -22,7 +22,8 @@ async function checkLatest() {
   const scenesRes = await fetch(scenesUrl, { headers: { 'apikey': supabaseKey, 'Authorization': 'Bearer ' + supabaseKey } });
   const scenes = await scenesRes.json();
   
-  console.log('Latest Story:', stories[0].title);
+  console.log('Latest Story ID:', storyId);
+  console.log('Latest Story Title:', stories[0].title);
   console.log('Status:', stories[0].status);
   console.log('Total Scenes:', scenes.length);
   const statuses = scenes.reduce((acc, s) => {
@@ -30,6 +31,16 @@ async function checkLatest() {
     return acc;
   }, {});
   console.log('Image Statuses:', statuses);
+
+  const failedScenes = scenes.filter(s => s.image_status === 'failed');
+  if (failedScenes.length > 0) {
+    console.log('\nFailed scenes details:');
+    failedScenes.slice(0, 3).forEach(s => {
+      console.log(`Scene ${s.scene_number}:`);
+      console.log(`Prompt: ${s.image_prompt}`);
+      console.log('---');
+    });
+  }
 }
 
 checkLatest();
