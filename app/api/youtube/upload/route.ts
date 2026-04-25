@@ -16,7 +16,7 @@ async function downloadFile(url: string, outputPath: string) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { storyId } = await request.json();
+    const { storyId, channelType = 'main' } = await request.json();
     if (!storyId) return NextResponse.json({ error: 'storyId is required' }, { status: 400 });
 
     const supabase = createServerClient(
@@ -38,12 +38,14 @@ export async function POST(request: NextRequest) {
     // Get YouTube refresh token
     const { data: settings } = await supabase
       .from('user_settings')
-      .select('youtube_refresh_token')
+      .select('youtube_refresh_token, youtube_sub_refresh_token')
       .eq('user_id', user.id)
       .single();
 
-    if (!settings || !settings.youtube_refresh_token) {
-      return NextResponse.json({ error: 'YouTube account not connected' }, { status: 400 });
+    const refreshToken = channelType === 'sub' ? settings?.youtube_sub_refresh_token : settings?.youtube_refresh_token;
+
+    if (!refreshToken) {
+      return NextResponse.json({ error: `YouTube ${channelType} account not connected` }, { status: 400 });
     }
 
     // Get Story Data
@@ -62,7 +64,7 @@ export async function POST(request: NextRequest) {
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET
     );
-    oauth2Client.setCredentials({ refresh_token: settings.youtube_refresh_token });
+    oauth2Client.setCredentials({ refresh_token: refreshToken });
     const youtube = google.youtube({ version: 'v3', auth: oauth2Client });
 
     // Download video locally for upload
