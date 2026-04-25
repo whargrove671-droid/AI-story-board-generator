@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Loader as Loader2, CircleAlert as AlertCircle, CircleCheck as CheckCircle, Trash2, Youtube, BookOpen, Download } from 'lucide-react';
+import { Loader as Loader2, CircleAlert as AlertCircle, CircleCheck as CheckCircle, Trash2, Youtube, BookOpen, Download, ChevronDown, ChevronUp } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -35,9 +35,10 @@ type Story = {
 interface StoryCardProps {
   story: Story;
   onRefresh: () => void;
+  viewMode?: 'card' | 'list';
 }
 
-export function StoryCard({ story, onRefresh }: StoryCardProps) {
+export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
@@ -49,8 +50,13 @@ export function StoryCard({ story, onRefresh }: StoryCardProps) {
   const [youtubeMainConnected, setYoutubeMainConnected] = useState(false);
   const [youtubeSubConnected, setYoutubeSubConnected] = useState(false);
   const [uploadChannel, setUploadChannel] = useState<'main' | 'sub'>('main');
+  const [isExpanded, setIsExpanded] = useState(viewMode === 'card');
   const supabase = createClient();
   const { toast } = useToast();
+
+  useEffect(() => {
+    setIsExpanded(viewMode === 'card');
+  }, [viewMode]);
 
   useEffect(() => {
     // Check if user has YouTube connected so we can show the switch
@@ -456,7 +462,10 @@ export function StoryCard({ story, onRefresh }: StoryCardProps) {
       <CardHeader className="border-b bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900">
         <div className="flex items-start justify-between">
           <div className="space-y-1 flex-1">
-            <CardTitle className="text-xl">{story.title}</CardTitle>
+            <CardTitle className="text-xl flex items-center gap-2 cursor-pointer hover:text-primary transition-colors" onClick={() => setIsExpanded(!isExpanded)}>
+              {isExpanded ? <ChevronUp className="w-5 h-5 text-muted-foreground" /> : <ChevronDown className="w-5 h-5 text-muted-foreground" />}
+              {story.title}
+            </CardTitle>
             <p className="text-sm text-muted-foreground">
               Created {new Date(story.created_at).toLocaleDateString()} at{' '}
               {new Date(story.created_at).toLocaleTimeString()}
@@ -584,8 +593,9 @@ export function StoryCard({ story, onRefresh }: StoryCardProps) {
           </div>
         </div>
       </CardHeader>
-      <CardContent className="p-6">
-        {story.video_url && (
+      {isExpanded && (
+        <CardContent className="p-6">
+          {story.video_url && (
           <div className="mb-8 p-4 bg-slate-900 rounded-xl shadow-inner">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-4">
               <h3 className="text-white text-lg font-semibold flex items-center gap-2">
@@ -661,6 +671,7 @@ export function StoryCard({ story, onRefresh }: StoryCardProps) {
           </div>
         )}
       </CardContent>
+      )}
     </Card>
   );
 }
