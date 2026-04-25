@@ -191,6 +191,7 @@ ${imagePromptRule}
 
       const { error } = await supabase.from('scenes').insert({
         story_id: storyId,
+        user_id: user.id,
         scene_number: i + 1,
         script: scene.script,
         image_prompt: imagePrompt,
