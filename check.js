@@ -11,7 +11,7 @@ envContent.split('\n').forEach(line => {
 });
 
 async function checkFailed() {
-  const url = supabaseUrl + '/rest/v1/scenes?image_status=eq.failed&order=scene_number.desc&limit=5';
+  const url = supabaseUrl + '/rest/v1/scenes?image_status=in.(pending,generating)&limit=5';
   const res = await fetch(url, {
     headers: {
       'apikey': supabaseKey,
@@ -19,7 +19,8 @@ async function checkFailed() {
     }
   });
   const data = await res.json();
-  console.log(JSON.stringify(data, null, 2));
+  console.log('Pending/Generating Scenes:', data.length);
+  console.log(JSON.stringify(data.map(s => ({ id: s.id, status: s.image_status })), null, 2));
 }
 
 checkFailed();
