@@ -6,7 +6,6 @@ import ffprobeInstaller from '@ffprobe-installer/ffprobe';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import https from 'https';
 import { pipeline } from 'stream/promises';
 
 // Set the ffmpeg/ffprobe paths
@@ -44,18 +43,12 @@ function createSegment(imagePath: string, audioPath: string, text: string, outpu
       .input(audioPath)
       .outputOptions([
         '-c:v', 'libx264',
-        '-r', '10',
-        '-tune', 'stillimage',
-        '-crf', '38',
-        '-preset', 'ultrafast',
         '-c:a', 'aac',
-        '-ac', '1',
-        '-b:a', '32k',
-        '-af', 'silenceremove=start_periods=1:start_duration=0.01:start_threshold=-30dB,areverse,silenceremove=start_periods=1:start_duration=0.01:start_threshold=-30dB,areverse',
+        '-b:a', '192k',
         '-pix_fmt', 'yuv420p',
         '-shortest',
         // Draw text from file with a semi-transparent black box background
-        '-vf', `scale=720:trunc(ow/a/2)*2,drawtext=textfile='${safeTextPath}':fontcolor=white:fontsize=28:box=1:boxcolor=black@0.6:boxborderw=10:x=(w-text_w)/2:y=h-text_h-50:line_spacing=10`
+        '-vf', `drawtext=textfile='${safeTextPath}':fontcolor=white:fontsize=36:box=1:boxcolor=black@0.6:boxborderw=10:x=(w-text_w)/2:y=h-text_h-50:line_spacing=10`
       ])
       .save(outputPath)
       .on('end', () => resolve())
@@ -81,56 +74,6 @@ function concatenateSegments(segmentPaths: string[], outputPath: string, tmpDir:
       .save(outputPath)
       .on('end', () => resolve())
       .on('error', (err: any) => reject(err));
-  });
-}
-
-function uploadToSupabaseDirectly(
-  supabaseUrl: string, 
-  token: string, 
-  anonKey: string, 
-  bucket: string, 
-  fileName: string, 
-  filePath: string,
-  contentType: string
-): Promise<any> {
-  return new Promise((resolve, reject) => {
-    const stat = fs.statSync(filePath);
-    const url = new URL(`${supabaseUrl}/storage/v1/object/${bucket}/${fileName}`);
-    
-    const req = https.request(url, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'apikey': anonKey,
-        'Content-Type': contentType,
-        'Content-Length': stat.size,
-        'x-upsert': 'true'
-      },
-      timeout: 3600000, // 1 hour timeout to prevent UND_ERR_HEADERS_TIMEOUT
-    }, (res) => {
-      let data = '';
-      res.on('data', chunk => data += chunk);
-      res.on('end', () => {
-        if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
-          resolve(JSON.parse(data || '{}'));
-        } else {
-          reject(new Error(`Upload failed with status ${res.statusCode}: ${data}`));
-        }
-      });
-    });
-
-    req.on('error', reject);
-    req.on('timeout', () => {
-      req.destroy();
-      reject(new Error('Upload timeout (1 hour limit)'));
-    });
-
-    const fileStream = fs.createReadStream(filePath);
-    fileStream.pipe(req);
-    fileStream.on('error', (err) => {
-      req.destroy();
-      reject(err);
-    });
   });
 }
 
@@ -188,14 +131,7 @@ export async function POST(request: NextRequest) {
 
     const segmentPaths: string[] = [];
     const downloadedImages = new Map<string, string>();
-    
-    // Find the first available image URL to use as the initial fallback
-    // In case the AI skipped generating an image for scene 1
-    let lastImageURL = scenes.find(s => s.image_url)?.image_url;
-    
-    if (!lastImageURL) {
-      return NextResponse.json({ error: 'No images generated for this story.' }, { status: 400 });
-    }
+    let lastImageURL = scenes[0].image_url;
 
     // Build segments
     for (let i = 0; i < scenes.length; i++) {
@@ -227,20 +163,17 @@ export async function POST(request: NextRequest) {
     await concatenateSegments(segmentPaths, finalVideoPath, tmpDir);
 
     console.log(`Uploading final video to Supabase Storage...`);
+    const fileBuffer = fs.readFileSync(finalVideoPath);
     const fileName = `story_${storyId}_final.mp4`;
 
-    const { data: { session } } = await supabase.auth.getSession();
-    const token = session?.access_token || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    const { error: uploadError } = await supabase.storage
+      .from('media')
+      .upload(fileName, fileBuffer, {
+        contentType: 'video/mp4',
+        upsert: true,
+      });
 
-    await uploadToSupabaseDirectly(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      token,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      'media',
-      fileName,
-      finalVideoPath,
-      'video/mp4'
-    );
+    if (uploadError) throw uploadError;
 
     const { data: publicUrlData } = supabase.storage.from('media').getPublicUrl(fileName);
 

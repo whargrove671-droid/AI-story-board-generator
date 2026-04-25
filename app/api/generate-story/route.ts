@@ -46,93 +46,64 @@ export async function POST(request: NextRequest) {
     }
 
     const imageInterval = storyLength >= 120 ? 6 : 4;
-    const batchSize = 10;
-    const allScenes: Array<{ script: string; imagePrompt: string }> = [];
-    let previousContext = "";
+    const intervalExample = storyLength >= 120 
+      ? '(i.e., Scene 1, Scene 7, Scene 13, etc.)' 
+      : '(i.e., Scene 1, Scene 5, Scene 9, Scene 13, etc.)';
 
-    let startIdx = 0;
-    while (startIdx < storyLength) {
-      const currentBatchSize = Math.min(batchSize, storyLength - startIdx);
-      const endIdx = startIdx + currentBatchSize;
-
-      const expectedImageScenes = [];
-      for (let i = startIdx; i < endIdx; i++) {
-        if (i % imageInterval === 0) {
-          expectedImageScenes.push(i + 1);
-        }
-      }
-      
-      const imagePromptRule = expectedImageScenes.length > 0 
-        ? `- Provide a detailed, cinematic \`imagePrompt\` ONLY for the following scene numbers: ${expectedImageScenes.join(', ')}.\n- For all other scenes, the \`imagePrompt\` MUST be an empty string "".`
-        : `- The \`imagePrompt\` MUST be an empty string "" for ALL scenes in this batch.`;
-
-      const prompt = `You are a creative storytelling AI. Given a story idea, create a detailed narrative. You are generating a batch of scenes for a longer story.
-Overall story length is ${storyLength} scenes. You are currently generating scenes ${startIdx + 1} to ${endIdx}.
+    const prompt = `You are a creative storytelling AI. Given a story idea, create a detailed ${storyLength}-scene narrative.
 
 Story Idea: "${storyIdea}"
-${previousContext ? `\nPrevious Scene Summary (for continuity, DO NOT regenerate this scene, continue the story from here):\n"${previousContext}"\n` : ''}
-Return exactly ${currentBatchSize} scenes for this batch.
+
+Return exactly ${storyLength} scenes.
 
 Rules:
-- Each scene MUST be 2-3 detailed paragraphs.
-${imagePromptRule}
-- Keep the story cohesive across the narrative
+- Each scene should be 3-4 sentences
+- Provide a detailed, cinematic \`imagePrompt\` ONLY for the first scene in every group of ${imageInterval} scenes ${intervalExample}.
+- For all other scenes, the \`imagePrompt\` MUST be an empty string "".
+- Keep the story cohesive across all ${storyLength} scenes
 - Make scenes cinematic and engaging
 - When providing an image prompt, ensure it works well with AI image generators`;
 
-      const completion = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        response_format: { type: 'json_object' },
-        messages: [
-          {
-            role: 'system',
-            content:
-              `You are a creative storytelling assistant that generates engaging narratives with sparse image prompts. You MUST return a JSON object containing a "scenes" array. Each object in the array must have "script" and "imagePrompt" string fields.`,
-          },
-          { role: 'user', content: prompt },
-        ],
-        temperature: 0.8,
-        max_tokens: 16000,
-      });
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      response_format: { type: 'json_object' },
+      messages: [
+        {
+          role: 'system',
+          content:
+            `You are a creative storytelling assistant that generates engaging ${storyLength}-scene narratives with sparse image prompts. You MUST return a JSON object containing a "scenes" array. Each object in the array must have "script" and "imagePrompt" string fields.`,
+        },
+        { role: 'user', content: prompt },
+      ],
+      temperature: 0.8,
+      max_tokens: 8000,
+    });
 
-      const generatedText = completion.choices[0]?.message?.content;
+    const generatedText = completion.choices[0]?.message?.content;
 
-      if (!generatedText) {
-        throw new Error('No content generated from OpenAI');
-      }
-
-      let batchScenes: Array<{ script: string; imagePrompt: string }> = [];
-      try {
-        const parsed = JSON.parse(generatedText);
-        batchScenes = parsed.scenes || [];
-      } catch (e) {
-        console.error('Failed to parse OpenAI JSON response:', e);
-      }
-      
-      if (!Array.isArray(batchScenes) || batchScenes.length === 0) {
-        throw new Error('Failed to generate scenes in batch or invalid format returned from AI');
-      }
-
-      allScenes.push(...batchScenes);
-      
-      const lastScene = batchScenes[batchScenes.length - 1];
-      previousContext = `Scene ${startIdx + batchScenes.length}: "${String(lastScene?.script || '').substring(0, 500)}..."`;
-      
-      startIdx += batchScenes.length;
+    if (!generatedText) {
+      throw new Error('No content generated from OpenAI');
     }
 
-    if (allScenes.length !== storyLength) {
-      console.error(`Expected ${storyLength} scenes, got:`, allScenes.length);
+    let scenes: Array<{ script: string; imagePrompt: string }> = [];
+    try {
+      const parsed = JSON.parse(generatedText);
+      scenes = parsed.scenes || [];
+    } catch (e) {
+      console.error('Failed to parse OpenAI JSON response:', e);
     }
 
-    for (let i = 0; i < allScenes.length && i < storyLength; i++) {
-      const scene = allScenes[i];
-      const imagePrompt = typeof scene?.imagePrompt === 'string' ? scene.imagePrompt.trim() : '';
+    if (scenes.length !== storyLength) {
+      console.error(`Expected ${storyLength} scenes, got:`, scenes.length);
+    }
+
+    for (let i = 0; i < scenes.length && i < storyLength; i++) {
+      const scene = scenes[i];
+      const imagePrompt = scene.imagePrompt?.trim() || '';
       const imageStatus = imagePrompt ? 'pending' : 'skipped';
 
       const { error } = await supabase.from('scenes').insert({
         story_id: storyId,
-        user_id: user.id,
         scene_number: i + 1,
         script: scene.script,
         image_prompt: imagePrompt,
@@ -151,7 +122,7 @@ ${imagePromptRule}
 
     return NextResponse.json({
       success: true,
-      scenesCount: allScenes.length,
+      scenesCount: scenes.length,
     });
   } catch (error: any) {
     console.error('Error generating story:', error);
