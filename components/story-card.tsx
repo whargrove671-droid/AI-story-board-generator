@@ -9,6 +9,7 @@ import { Loader as Loader2, CircleAlert as AlertCircle, CircleCheck as CheckCirc
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -485,128 +486,198 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
         </div>
 
         {isExpanded && (
-          <div className="flex flex-wrap items-center gap-3 pt-4 mt-4 border-t border-slate-200 dark:border-slate-800">
-            {(youtubeMainConnected || youtubeSubConnected) && (
-              <div className="flex items-center space-x-2 bg-white dark:bg-slate-950 px-3 py-1.5 rounded-md border shadow-sm">
-                <Select value={uploadChannel} onValueChange={(val: 'main' | 'sub') => setUploadChannel(val)}>
-                  <SelectTrigger className="w-28 h-8 text-xs border-none bg-transparent shadow-none focus:ring-0 px-1">
-                    <SelectValue placeholder="Channel" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {youtubeMainConnected && <SelectItem value="main">Main Channel</SelectItem>}
-                    {youtubeSubConnected && <SelectItem value="sub">Sub Channel</SelectItem>}
-                  </SelectContent>
-                </Select>
-                <div className="w-px h-4 bg-slate-200 dark:bg-slate-800" />
-                <Switch 
-                  id={`yt-upload-${story.id}`} 
-                  checked={autoUpload} 
-                  onCheckedChange={setAutoUpload}
-                  disabled={isGeneratingVideo || isUploadingYouTube}
-                  className="scale-75 data-[state=checked]:bg-red-500"
-                />
-                <Label htmlFor={`yt-upload-${story.id}`} className="text-xs font-medium cursor-pointer flex items-center gap-1 select-none pr-1">
-                  <Youtube className="w-3.5 h-3.5 text-red-500" />
-                  Auto-Upload
-                </Label>
-              </div>
-            )}
-            {canGenerateVideo && (
-              <Button 
-                variant="default" 
-                size="sm" 
-                onClick={handleGenerateVideo} 
-                disabled={isGeneratingVideo || isUploadingYouTube}
-                className={`bg-purple-600 hover:bg-purple-700 text-white shadow-sm transition-colors ${!(isGeneratingVideo || isUploadingYouTube) ? 'animate-pulse hover:animate-none' : ''}`}
-              >
-                {(isGeneratingVideo || isUploadingYouTube) ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <AlertCircle className="h-4 w-4 mr-2 hidden" />}
-                {isUploadingYouTube ? 'Uploading to YouTube...' : 'Generate Video'}
-              </Button>
-            )}
-            {canRegenerateVideo && (
-              <Button 
-                variant="default" 
-                size="sm" 
-                onClick={handleGenerateVideo} 
-                disabled={isGeneratingVideo || isUploadingYouTube}
-                className="bg-purple-600 hover:bg-purple-700 text-white shadow-sm transition-colors"
-              >
-                {(isGeneratingVideo || isUploadingYouTube) ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <AlertCircle className="h-4 w-4 mr-2 hidden" />}
-                {isGeneratingVideo ? 'Recompiling...' : 'Regenerate Video'}
-              </Button>
-            )}
-            {canContinueSeries && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleContinueSeries} 
-                disabled={isContinuing || isGeneratingVideo}
-                className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:hover:bg-blue-900/50 dark:border-blue-900/50 shadow-sm transition-colors"
-              >
-                {isContinuing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <BookOpen className="h-4 w-4 mr-2" />}
-                {isContinuing ? 'Continuing...' : 'Continue Series'}
-              </Button>
-            )}
-            {story.video_url && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleDownload} 
-                disabled={isDownloading}
-                className={`bg-green-50 hover:bg-green-100 text-green-700 border-green-200 dark:bg-green-950/30 dark:hover:bg-green-900/50 dark:border-green-900/50 shadow-sm transition-colors ${!isDownloading ? 'animate-pulse hover:animate-none' : ''}`}
-              >
-                {isDownloading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Download className="h-4 w-4 mr-2" />}
-                {isDownloading ? (downloadProgress > 0 ? `Downloading ${downloadProgress}%` : 'Starting...') : 'Download Video'}
-              </Button>
-            )}
-            {story.video_url && !story.youtube_url && (youtubeMainConnected || youtubeSubConnected) && (
-              <div className="flex items-center gap-2 bg-white dark:bg-slate-950 p-1 rounded-md border shadow-sm">
-                <Select value={uploadChannel} onValueChange={(val: 'main' | 'sub') => setUploadChannel(val)}>
-                  <SelectTrigger className="w-28 h-7 text-xs border-none shadow-none focus:ring-0">
-                    <SelectValue placeholder="Channel" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {youtubeMainConnected && <SelectItem value="main">Main Channel</SelectItem>}
-                    {youtubeSubConnected && <SelectItem value="sub">Sub Channel</SelectItem>}
-                  </SelectContent>
-                </Select>
-                <div className="w-px h-4 bg-slate-200 dark:bg-slate-800" />
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={handleUploadYouTube} 
-                  disabled={isUploadingYouTube}
-                  className={`h-7 text-xs text-red-700 hover:text-red-800 hover:bg-red-50 dark:hover:bg-red-950/50 transition-colors ${!isUploadingYouTube ? 'animate-pulse hover:animate-none' : ''}`}
-                >
-                  {isUploadingYouTube ? <Loader2 className="h-3 w-3 animate-spin mr-1.5" /> : <Youtube className="h-3 w-3 mr-1.5" />}
-                  {isUploadingYouTube ? 'Uploading...' : 'Upload'}
-                </Button>
-              </div>
-            )}
-            {hasStuckScenes && !isGeneratingImages && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleRetryImages} 
-                disabled={isRetrying}
-                className="bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:hover:bg-amber-900/50 dark:border-amber-900/50 shadow-sm transition-colors"
-              >
-                {isRetrying ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-                {isRetrying ? 'Retrying...' : 'Retry Images'}
-              </Button>
-            )}
-            <div className="flex-1" />
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleDelete} 
-              disabled={isDeleting}
-              className="bg-red-50 hover:bg-red-100 text-red-700 border-red-200 dark:bg-red-950/30 dark:hover:bg-red-900/50 dark:border-red-900/50 shadow-sm transition-colors ml-auto"
-            >
-              {isDeleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
-              {story.status === 'failed' || story.status === 'generating' || story.scenes.some(s => s.image_status === 'failed' || s.image_status === 'generating') ? 'Cancel & Delete' : 'Delete'}
-            </Button>
-          </div>
+          <TooltipProvider delayDuration={300}>
+            <div className="flex flex-wrap items-center gap-3 pt-4 mt-4 border-t border-slate-200 dark:border-slate-800">
+              {(youtubeMainConnected || youtubeSubConnected) && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center space-x-2 bg-white dark:bg-slate-950 px-3 py-1.5 rounded-md border shadow-sm">
+                      <Select value={uploadChannel} onValueChange={(val: 'main' | 'sub') => setUploadChannel(val)}>
+                        <SelectTrigger className="w-28 h-8 text-xs border-none bg-transparent shadow-none focus:ring-0 px-1">
+                          <SelectValue placeholder="Channel" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {youtubeMainConnected && <SelectItem value="main">Main Channel</SelectItem>}
+                          {youtubeSubConnected && <SelectItem value="sub">Sub Channel</SelectItem>}
+                        </SelectContent>
+                      </Select>
+                      <div className="w-px h-4 bg-slate-200 dark:bg-slate-800" />
+                      <Switch 
+                        id={`yt-upload-${story.id}`} 
+                        checked={autoUpload} 
+                        onCheckedChange={setAutoUpload}
+                        disabled={isGeneratingVideo || isUploadingYouTube}
+                        className="scale-75 data-[state=checked]:bg-red-500"
+                      />
+                      <Label htmlFor={`yt-upload-${story.id}`} className="text-xs font-medium cursor-pointer flex items-center gap-1 select-none pr-1">
+                        <Youtube className="w-3.5 h-3.5 text-red-500" />
+                        Auto-Upload
+                      </Label>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Automatically upload to YouTube when generation completes</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+              {canGenerateVideo && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="inline-block">
+                      <Button 
+                        variant="default" 
+                        size="sm" 
+                        onClick={handleGenerateVideo} 
+                        disabled={isGeneratingVideo || isUploadingYouTube}
+                        className={`bg-purple-600 hover:bg-purple-700 text-white shadow-sm transition-colors ${!(isGeneratingVideo || isUploadingYouTube) ? 'animate-pulse hover:animate-none' : ''}`}
+                      >
+                        {(isGeneratingVideo || isUploadingYouTube) ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <AlertCircle className="h-4 w-4 mr-2 hidden" />}
+                        {isUploadingYouTube ? 'Uploading to YouTube...' : 'Generate Video'}
+                      </Button>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Compile generated scenes into a final video</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+              {canRegenerateVideo && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="inline-block">
+                      <Button 
+                        variant="default" 
+                        size="sm" 
+                        onClick={handleGenerateVideo} 
+                        disabled={isGeneratingVideo || isUploadingYouTube}
+                        className="bg-purple-600 hover:bg-purple-700 text-white shadow-sm transition-colors"
+                      >
+                        {(isGeneratingVideo || isUploadingYouTube) ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <AlertCircle className="h-4 w-4 mr-2 hidden" />}
+                        {isGeneratingVideo ? 'Recompiling...' : 'Regenerate Video'}
+                      </Button>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Recompile the video using the latest scenes and audio</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+              {canContinueSeries && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="inline-block">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={handleContinueSeries} 
+                        disabled={isContinuing || isGeneratingVideo}
+                        className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:hover:bg-blue-900/50 dark:border-blue-900/50 shadow-sm transition-colors"
+                      >
+                        {isContinuing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <BookOpen className="h-4 w-4 mr-2" />}
+                        {isContinuing ? 'Continuing...' : 'Continue Series'}
+                      </Button>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Generate the next part of this story sequence</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+              {story.video_url && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="inline-block">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={handleDownload} 
+                        disabled={isDownloading}
+                        className={`bg-green-50 hover:bg-green-100 text-green-700 border-green-200 dark:bg-green-950/30 dark:hover:bg-green-900/50 dark:border-green-900/50 shadow-sm transition-colors ${!isDownloading ? 'animate-pulse hover:animate-none' : ''}`}
+                      >
+                        {isDownloading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Download className="h-4 w-4 mr-2" />}
+                        {isDownloading ? (downloadProgress > 0 ? `Downloading ${downloadProgress}%` : 'Starting...') : 'Download Video'}
+                      </Button>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Save the final MP4 video to your device</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+              {story.video_url && !story.youtube_url && (youtubeMainConnected || youtubeSubConnected) && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center gap-2 bg-white dark:bg-slate-950 p-1 rounded-md border shadow-sm">
+                      <Select value={uploadChannel} onValueChange={(val: 'main' | 'sub') => setUploadChannel(val)}>
+                        <SelectTrigger className="w-28 h-7 text-xs border-none shadow-none focus:ring-0">
+                          <SelectValue placeholder="Channel" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {youtubeMainConnected && <SelectItem value="main">Main Channel</SelectItem>}
+                          {youtubeSubConnected && <SelectItem value="sub">Sub Channel</SelectItem>}
+                        </SelectContent>
+                      </Select>
+                      <div className="w-px h-4 bg-slate-200 dark:bg-slate-800" />
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={handleUploadYouTube} 
+                        disabled={isUploadingYouTube}
+                        className={`h-7 text-xs text-red-700 hover:text-red-800 hover:bg-red-50 dark:hover:bg-red-950/50 transition-colors ${!isUploadingYouTube ? 'animate-pulse hover:animate-none' : ''}`}
+                      >
+                        {isUploadingYouTube ? <Loader2 className="h-3 w-3 animate-spin mr-1.5" /> : <Youtube className="h-3 w-3 mr-1.5" />}
+                        {isUploadingYouTube ? 'Uploading...' : 'Upload'}
+                      </Button>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Upload this video manually to your YouTube channel</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+              {hasStuckScenes && !isGeneratingImages && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="inline-block">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={handleRetryImages} 
+                        disabled={isRetrying}
+                        className="bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:hover:bg-amber-900/50 dark:border-amber-900/50 shadow-sm transition-colors"
+                      >
+                        {isRetrying ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+                        {isRetrying ? 'Retrying...' : 'Retry Images'}
+                      </Button>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Retry generating any images that failed or got stuck</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+              <div className="flex-1" />
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="inline-block ml-auto">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={handleDelete} 
+                      disabled={isDeleting}
+                      className="bg-red-50 hover:bg-red-100 text-red-700 border-red-200 dark:bg-red-950/30 dark:hover:bg-red-900/50 dark:border-red-900/50 shadow-sm transition-colors w-full"
+                    >
+                      {isDeleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
+                      {story.status === 'failed' || story.status === 'generating' || story.scenes.some(s => s.image_status === 'failed' || s.image_status === 'generating') ? 'Cancel & Delete' : 'Delete'}
+                    </Button>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Permanently delete this story and all its assets</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+          </TooltipProvider>
         )}
       </CardHeader>
       
