@@ -562,7 +562,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
                         size="sm" 
                         onClick={handleGenerateVideo} 
                         disabled={isGeneratingVideo || isUploadingYouTube}
-                        className="bg-purple-600 hover:bg-purple-700 text-white shadow-sm transition-colors"
+                    className={`bg-purple-600 hover:bg-purple-700 text-white shadow-sm transition-colors ${!(isGeneratingVideo || isUploadingYouTube) ? 'animate-pulse hover:animate-none' : ''}`}
                       >
                         {(isGeneratingVideo || isUploadingYouTube) ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <AlertCircle className="h-4 w-4 mr-2 hidden" />}
                         {isGeneratingVideo ? 'Recompiling...' : 'Regenerate Video'}
@@ -671,7 +671,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
                         size="sm" 
                         onClick={handleRetryImages} 
                         disabled={isRetrying}
-                        className="bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:hover:bg-amber-900/50 dark:border-amber-900/50 shadow-sm transition-colors"
+                    className={`bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:hover:bg-amber-900/50 dark:border-amber-900/50 shadow-sm transition-colors ${!isRetrying ? 'animate-pulse hover:animate-none' : ''}`}
                       >
                         {isRetrying ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
                         {isRetrying ? 'Retrying...' : 'Retry Images'}
