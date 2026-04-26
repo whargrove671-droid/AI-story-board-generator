@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Loader as Loader2, CircleAlert as AlertCircle, CircleCheck as CheckCircle, Trash2, Youtube, BookOpen, Download, ChevronDown, ChevronUp } from 'lucide-react';
+import { Loader as Loader2, CircleAlert as AlertCircle, CircleCheck as CheckCircle, Trash2, Youtube, BookOpen, Download, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -589,10 +589,10 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
                 size="sm" 
                 onClick={handleRetryImages} 
                 disabled={isRetrying}
-                className="shadow-sm"
+                className="bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:hover:bg-amber-900/50 dark:border-amber-900/50 shadow-sm transition-colors"
               >
-                {isRetrying ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <AlertCircle className="h-4 w-4 mr-2" />}
-                Retry Images
+                {isRetrying ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+                {isRetrying ? 'Retrying...' : 'Retry Images'}
               </Button>
             )}
             <div className="flex-1" />
