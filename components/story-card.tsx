@@ -583,7 +583,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
                         size="sm" 
                         onClick={handleContinueSeries} 
                         disabled={isContinuing || isGeneratingVideo}
-                        className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:hover:bg-blue-900/50 dark:border-blue-900/50 shadow-sm transition-colors"
+                        className={`bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:hover:bg-blue-900/50 dark:border-blue-900/50 shadow-sm transition-colors ${!(isContinuing || isGeneratingVideo) ? 'animate-pulse hover:animate-none' : ''}`}
                       >
                         {isContinuing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <BookOpen className="h-4 w-4 mr-2" />}
                         {isContinuing ? 'Continuing...' : 'Continue Series'}
