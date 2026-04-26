@@ -553,7 +553,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
                 size="sm" 
                 onClick={handleDownload} 
                 disabled={isDownloading}
-                className="bg-green-50 hover:bg-green-100 text-green-700 border-green-200 dark:bg-green-950/30 dark:hover:bg-green-900/50 dark:border-green-900/50 shadow-sm transition-colors"
+                className={`bg-green-50 hover:bg-green-100 text-green-700 border-green-200 dark:bg-green-950/30 dark:hover:bg-green-900/50 dark:border-green-900/50 shadow-sm transition-colors ${!isDownloading ? 'animate-pulse hover:animate-none' : ''}`}
               >
                 {isDownloading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Download className="h-4 w-4 mr-2" />}
                 {isDownloading ? (downloadProgress > 0 ? `Downloading ${downloadProgress}%` : 'Starting...') : 'Download Video'}
