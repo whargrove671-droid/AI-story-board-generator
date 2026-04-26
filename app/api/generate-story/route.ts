@@ -132,13 +132,18 @@ ${imagePromptRule}
 
     for (let i = 0; i < scenes.length && i < storyLength; i++) {
       const scene = scenes[i];
-      const imagePrompt = scene.imagePrompt?.trim() || '';
+      const imagePrompt = typeof scene?.imagePrompt === 'string' ? scene.imagePrompt.trim() : '';
       const imageStatus = imagePrompt ? 'pending' : 'skipped';
+
+      let scriptContent = scene?.script || (scene as any)?.text || (scene as any)?.narration || (scene as any)?.content;
+      if (!scriptContent || typeof scriptContent !== 'string') {
+        scriptContent = `[Scene ${i + 1} narration missing. AI generated an empty response.]`;
+      }
 
       const { error } = await supabase.from('scenes').insert({
         story_id: storyId,
         scene_number: i + 1,
-        script: scene.script,
+        script: scriptContent,
         image_prompt: imagePrompt,
         image_status: imageStatus,
       });
