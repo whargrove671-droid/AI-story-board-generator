@@ -405,8 +405,24 @@ export default function DashboardPage() {
           </div>
 
           {loadingStories ? (
-            <div className="flex justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <div className="space-y-6">
+              {[1, 2, 3].map((i) => (
+                <Card key={i} className="shadow-lg overflow-hidden opacity-70">
+                  <CardHeader className="border-b bg-slate-50/50 dark:bg-slate-900/50">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                      <div className="space-y-3 flex-1 w-full">
+                        <div className="h-7 bg-slate-200 dark:bg-slate-800 rounded-md w-3/4 sm:w-1/3 animate-pulse" />
+                        <div className="flex gap-2">
+                          <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded-md w-16 animate-pulse" />
+                          <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded-md w-16 animate-pulse hidden sm:block" />
+                          <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded-md w-20 animate-pulse hidden sm:block" />
+                        </div>
+                      </div>
+                      <div className="h-6 w-24 bg-slate-200 dark:bg-slate-800 rounded-full animate-pulse shrink-0" />
+                    </div>
+                  </CardHeader>
+                </Card>
+              ))}
             </div>
           ) : stories.length === 0 ? (
             <Card className="py-12">
