@@ -47,6 +47,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
   const [isContinuing, setIsContinuing] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
+  const [downloadCompleted, setDownloadCompleted] = useState(false);
   const [autoUpload, setAutoUpload] = useState(false);
   const [youtubeMainConnected, setYoutubeMainConnected] = useState(false);
   const [youtubeSubConnected, setYoutubeSubConnected] = useState(false);
@@ -166,6 +167,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
 
   const handleDownload = async () => {
     if (!story.video_url) return;
+    let downloadSucceeded = false;
     try {
       setIsDownloading(true);
       setDownloadProgress(0);
@@ -205,44 +207,54 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
           
           await writable.close();
           toast({ title: 'Success', description: 'Video saved successfully!' });
-          return;
+          downloadSucceeded = true;
         } catch (err: any) {
           // If user cancels the picker, just abort
-          if (err.name === 'AbortError') return;
+          if (err.name === 'AbortError') {
+            return; // Exit early, finally will still run to clean up state.
+          }
           console.error("SaveFilePicker failed, falling back to traditional download:", err);
+          // Re-throw to be caught by the outer catch which has fallback logic
+          throw err;
         }
-      }
-
-      // Fallback if showSaveFilePicker is not supported or failed
-      const reader = response.body!.getReader();
-      const chunks = [];
-      let loaded = 0;
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        chunks.push(value);
-        loaded += value.length;
-        if (total) {
-          setDownloadProgress(Math.round((loaded / total) * 100));
+      } else {
+        // Fallback for browsers without showSaveFilePicker
+        const reader = response.body!.getReader();
+        const chunks = [];
+        let loaded = 0;
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          chunks.push(value);
+          loaded += value.length;
+          if (total) {
+            setDownloadProgress(Math.round((loaded / total) * 100));
+          }
         }
+        
+        const blob = new Blob(chunks, { type: 'video/mp4' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${story.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp4`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        toast({ title: 'Success', description: 'Video download complete!' });
+        downloadSucceeded = true;
       }
-      
-      const blob = new Blob(chunks, { type: 'video/mp4' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${story.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp4`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      
-      toast({ title: 'Success', description: 'Video download complete!' });
     } catch (error: any) {
+      toast({ title: 'Download Failed', description: 'Opening video in a new tab as a fallback.', variant: 'destructive' });
       window.open(story.video_url, '_blank');
     } finally {
       setIsDownloading(false);
       setDownloadProgress(0);
+      if (downloadSucceeded) {
+        setDownloadCompleted(true);
+        setTimeout(() => setDownloadCompleted(false), 2500);
+      }
     }
   };
 
@@ -591,11 +603,26 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
                         variant="outline" 
                         size="sm" 
                         onClick={handleDownload} 
-                        disabled={isDownloading}
-                        className={`bg-green-50 hover:bg-green-100 text-green-700 border-green-200 dark:bg-green-950/30 dark:hover:bg-green-900/50 dark:border-green-900/50 shadow-sm transition-colors ${!isDownloading ? 'animate-pulse hover:animate-none' : ''}`}
+                        disabled={isDownloading || downloadCompleted}
+                        className={
+                          downloadCompleted 
+                            ? "bg-green-100 dark:bg-green-900/80 text-green-800 dark:text-green-200 border-green-200 dark:border-green-800 shadow-sm transition-colors"
+                            : `bg-green-50 hover:bg-green-100 text-green-700 border-green-200 dark:bg-green-950/30 dark:hover:bg-green-900/50 dark:border-green-900/50 shadow-sm transition-colors ${!isDownloading ? 'animate-pulse hover:animate-none' : ''}`
+                        }
                       >
-                        {isDownloading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Download className="h-4 w-4 mr-2" />}
-                        {isDownloading ? (downloadProgress > 0 ? `Downloading ${downloadProgress}%` : 'Starting...') : 'Download Video'}
+                        {downloadCompleted ? (
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                        ) : isDownloading ? (
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        ) : (
+                          <Download className="h-4 w-4 mr-2" />
+                        )}
+                        {downloadCompleted 
+                          ? 'Downloaded!' 
+                          : isDownloading 
+                            ? (downloadProgress > 0 ? `Downloading ${downloadProgress}%` : 'Starting...') 
+                            : 'Download Video'
+                        }
                       </Button>
                     </div>
                   </TooltipTrigger>
