@@ -106,6 +106,33 @@ export default function DashboardPage() {
     router.push('/login');
   };
 
+  const triggerImageGeneration = async (storyId: string) => {
+    let hasMore = true;
+    let errorCount = 0;
+    
+    while (hasMore && errorCount < 3) {
+      try {
+        const res = await fetch('/api/generate-images', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ storyId }),
+        });
+        if (!res.ok) throw new Error('Failed to generate image');
+        
+        const data = await res.json();
+        loadStories();
+        hasMore = data.morePending;
+        errorCount = 0; // reset on success
+      } catch (err) {
+        console.error('Failed to trigger image generation:', err);
+        errorCount++;
+        if (errorCount < 3) {
+          await new Promise(r => setTimeout(r, 2000));
+        }
+      }
+    }
+  };
+
   const handleGenerateStory = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -156,33 +183,7 @@ export default function DashboardPage() {
       loadStories();
 
       // Trigger image generation robustly to prevent server timeout/kill and handle transient errors
-      const generateImages = async () => {
-        let hasMore = true;
-        let errorCount = 0;
-        
-        while (hasMore && errorCount < 3) {
-          try {
-            const res = await fetch('/api/generate-images', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ storyId: story.id }),
-            });
-            if (!res.ok) throw new Error('Failed to generate image');
-            
-            const data = await res.json();
-            loadStories();
-            hasMore = data.morePending;
-            errorCount = 0; // reset on success
-          } catch (err) {
-            console.error('Failed to trigger image generation:', err);
-            errorCount++;
-            if (errorCount < 3) {
-              await new Promise(r => setTimeout(r, 2000));
-            }
-          }
-        }
-      };
-      generateImages();
+      triggerImageGeneration(story.id);
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -244,33 +245,7 @@ export default function DashboardPage() {
       loadStories();
 
       // Trigger image generation robustly to prevent server timeout/kill and handle transient errors
-      const generateImages = async () => {
-        let hasMore = true;
-        let errorCount = 0;
-        
-        while (hasMore && errorCount < 3) {
-          try {
-            const res = await fetch('/api/generate-images', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ storyId: story.id }),
-            });
-            if (!res.ok) throw new Error('Failed to generate image');
-            
-            const data = await res.json();
-            loadStories();
-            hasMore = data.morePending;
-            errorCount = 0; // reset on success
-          } catch (err) {
-            console.error('Failed to trigger image generation:', err);
-            errorCount++;
-            if (errorCount < 3) {
-              await new Promise(r => setTimeout(r, 2000));
-            }
-          }
-        }
-      };
-      generateImages();
+      triggerImageGeneration(story.id);
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -325,76 +300,81 @@ export default function DashboardPage() {
       </header>
 
       <main className="container mx-auto px-4 py-8 max-w-6xl">
-        <Card className="mb-8 shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5" />
-              Generate New Story
-            </CardTitle>
-            <CardDescription>
-              Enter your story idea and let AI create a detailed script with stunning images
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleGenerateStory} className="space-y-4">
-              <Textarea
-                placeholder="Enter your story idea here... (e.g., 'A brave knight embarks on a quest to find a magical crystal')"
-                value={storyIdea}
-                onChange={(e) => setStoryIdea(e.target.value)}
-                disabled={loading}
-                rows={4}
-                className="resize-none"
-              />
-              <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-                <div className="w-full sm:w-72">
-                  <Select value={storyLength} onValueChange={setStoryLength} disabled={loading}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select story length" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="5">Short (5 Scenes, 5 Images)</SelectItem>
-                      <SelectItem value="40">Medium (40 Scenes, 10 Images)</SelectItem>
-                      <SelectItem value="120">1 Hour (120 Scenes, Sparse Images)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button type="submit" disabled={loading} className="w-full sm:w-auto">
-                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {loading ? 'Generating Story...' : 'Generate Story'}
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-
-        <Card className="mb-8 shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Youtube className="h-5 w-5 text-red-500" />
-              Generate from YouTube Video
-            </CardTitle>
-            <CardDescription>
-              Paste a YouTube URL to automatically extract the narration and turn it into a storyboard
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleGenerateFromYoutube} className="space-y-4">
-              <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-                <Input
-                  placeholder="https://www.youtube.com/watch?v=..."
-                  value={youtubeUrl}
-                  onChange={(e) => setYoutubeUrl(e.target.value)}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <Card className="shadow-lg h-full flex flex-col">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BookOpen className="h-5 w-5" />
+                Generate New Story
+              </CardTitle>
+              <CardDescription>
+                Enter your story idea and let AI create a detailed script with stunning images
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex-1 flex flex-col">
+              <form onSubmit={handleGenerateStory} className="space-y-4 flex-1 flex flex-col">
+                <Textarea
+                  placeholder="Enter your story idea here... (e.g., 'A brave knight embarks on a quest to find a magical crystal')"
+                  value={storyIdea}
+                  onChange={(e) => setStoryIdea(e.target.value)}
                   disabled={loading}
-                  className="flex-1"
+                  rows={4}
+                  className="resize-none flex-1"
                 />
-                <Button type="submit" disabled={loading} className="w-full sm:w-auto whitespace-nowrap bg-red-500 hover:bg-red-600 text-white">
+                <div className="flex flex-col xl:flex-row gap-4 items-center justify-between mt-auto">
+                  <div className="w-full xl:w-1/2">
+                    <Select value={storyLength} onValueChange={setStoryLength} disabled={loading}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select story length" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="5">Short (5 Scenes)</SelectItem>
+                        <SelectItem value="40">Medium (40 Scenes)</SelectItem>
+                        <SelectItem value="120">Long (120 Scenes)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button type="submit" disabled={loading} className="w-full xl:w-auto">
+                    {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {loading ? 'Generating...' : 'Generate Story'}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-lg h-full flex flex-col">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Youtube className="h-5 w-5 text-red-500" />
+                Generate from YouTube Video
+              </CardTitle>
+              <CardDescription>
+                Paste a YouTube URL to automatically extract the narration and turn it into a storyboard
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex-1 flex flex-col">
+              <form onSubmit={handleGenerateFromYoutube} className="space-y-4 flex-1 flex flex-col justify-between">
+                <div className="space-y-4 flex-1 flex flex-col">
+                  <Input
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    value={youtubeUrl}
+                    onChange={(e) => setYoutubeUrl(e.target.value)}
+                    disabled={loading}
+                    className="w-full"
+                  />
+                  <div className="text-sm text-muted-foreground p-4 bg-slate-50 dark:bg-slate-900 rounded-lg border border-dashed flex-1 flex items-center">
+                    <p><strong>Pro tip:</strong> Ensure the video has closed captions enabled. AI will determine the optimal length automatically.</p>
+                  </div>
+                </div>
+                <Button type="submit" disabled={loading} className="w-full bg-red-500 hover:bg-red-600 text-white mt-auto">
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {loading ? 'Generating...' : 'Extract & Generate'}
+                  {loading ? 'Extracting...' : 'Extract & Generate'}
                 </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
 
         <div className="space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
