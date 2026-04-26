@@ -458,221 +458,249 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
   const totalWords = story.scenes.reduce((acc, scene) => acc + (scene.script ? scene.script.split(/\s+/).length : 0), 0);
 
   return (
-    <Card className="shadow-lg overflow-hidden">
-      <CardHeader className="border-b bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900">
-        <div className="flex items-start justify-between">
-          <div className="space-y-1 flex-1">
-            <CardTitle className="text-xl flex items-center gap-2 cursor-pointer hover:text-primary transition-colors" onClick={() => setIsExpanded(!isExpanded)}>
-              {isExpanded ? <ChevronUp className="w-5 h-5 text-muted-foreground" /> : <ChevronDown className="w-5 h-5 text-muted-foreground" />}
-              {story.title}
+    <Card className="shadow-lg overflow-hidden transition-all duration-200">
+      <CardHeader className="border-b bg-gradient-to-r from-slate-50 to-slate-100/80 dark:from-slate-900/80 dark:to-slate-900">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="space-y-1.5 flex-1 min-w-0 w-full">
+            <CardTitle 
+              className="text-xl flex items-center gap-2 cursor-pointer hover:text-primary transition-colors select-none" 
+              onClick={() => setIsExpanded(!isExpanded)}
+            >
+              <div className="p-1 rounded-md hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors shrink-0">
+                {isExpanded ? <ChevronUp className="w-5 h-5 text-slate-500" /> : <ChevronDown className="w-5 h-5 text-slate-500" />}
+              </div>
+              <span className="truncate">{story.title}</span>
             </CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Created {new Date(story.created_at).toLocaleDateString()} at{' '}
-              {new Date(story.created_at).toLocaleTimeString()}
-            </p>
+            <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground pl-9">
+              <span className="whitespace-nowrap">{new Date(story.created_at).toLocaleDateString()}</span>
+              <span className="hidden sm:inline">•</span>
+              <span className="whitespace-nowrap">{totalWords} words</span>
+              <span className="hidden sm:inline">•</span>
+              <span className="whitespace-nowrap">{story.scenes.length} scenes</span>
+            </div>
           </div>
-          <div className="flex flex-col items-end gap-2">
+          <div className="flex items-center pl-9 sm:pl-0 shrink-0">
             {getStatusBadge(story.status)}
-            {isExpanded && (
-              <div className="flex items-center gap-3 flex-wrap justify-end mt-2 sm:mt-0">
-              {(youtubeMainConnected || youtubeSubConnected) && (
-                <div className="flex items-center space-x-2 bg-slate-100 dark:bg-slate-900 px-3 py-1.5 rounded-md border">
-                  <Select value={uploadChannel} onValueChange={(val: 'main' | 'sub') => setUploadChannel(val)}>
-                    <SelectTrigger className="w-32 h-8 text-xs border-none bg-transparent shadow-none focus:ring-0">
-                      <SelectValue placeholder="Channel" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {youtubeMainConnected && <SelectItem value="main">Main Channel</SelectItem>}
-                      {youtubeSubConnected && <SelectItem value="sub">Sub Channel</SelectItem>}
-                    </SelectContent>
-                  </Select>
-                  <Switch 
-                    id={`yt-upload-${story.id}`} 
-                    checked={autoUpload} 
-                    onCheckedChange={setAutoUpload}
-                    disabled={isGeneratingVideo || isUploadingYouTube}
-                  />
-                  <Label htmlFor={`yt-upload-${story.id}`} className="text-sm cursor-pointer flex items-center gap-1">
-                    <Youtube className="w-4 h-4 text-red-500" />
-                    Auto-Upload
-                  </Label>
-                </div>
-              )}
-              {canGenerateVideo && (
-                <Button 
-                  variant="default" 
-                  size="sm" 
-                  onClick={handleGenerateVideo} 
+          </div>
+        </div>
+
+        {isExpanded && (
+          <div className="flex flex-wrap items-center gap-3 pt-4 mt-4 border-t border-slate-200 dark:border-slate-800">
+            {(youtubeMainConnected || youtubeSubConnected) && (
+              <div className="flex items-center space-x-2 bg-white dark:bg-slate-950 px-3 py-1.5 rounded-md border shadow-sm">
+                <Select value={uploadChannel} onValueChange={(val: 'main' | 'sub') => setUploadChannel(val)}>
+                  <SelectTrigger className="w-28 h-8 text-xs border-none bg-transparent shadow-none focus:ring-0 px-1">
+                    <SelectValue placeholder="Channel" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {youtubeMainConnected && <SelectItem value="main">Main Channel</SelectItem>}
+                    {youtubeSubConnected && <SelectItem value="sub">Sub Channel</SelectItem>}
+                  </SelectContent>
+                </Select>
+                <div className="w-px h-4 bg-slate-200 dark:bg-slate-800" />
+                <Switch 
+                  id={`yt-upload-${story.id}`} 
+                  checked={autoUpload} 
+                  onCheckedChange={setAutoUpload}
                   disabled={isGeneratingVideo || isUploadingYouTube}
-                  className="bg-purple-600 hover:bg-purple-700 text-white"
-                >
-                  {(isGeneratingVideo || isUploadingYouTube) ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <AlertCircle className="h-4 w-4 mr-1 hidden" />}
-                  {isUploadingYouTube ? 'Uploading to YouTube...' : 'Generate Video'}
-                </Button>
-              )}
-              {canRegenerateVideo && (
-                <Button 
-                  variant="default" 
-                  size="sm" 
-                  onClick={handleGenerateVideo} 
-                  disabled={isGeneratingVideo || isUploadingYouTube}
-                  className="bg-purple-600 hover:bg-purple-700 text-white"
-                >
-                  {(isGeneratingVideo || isUploadingYouTube) ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <AlertCircle className="h-4 w-4 mr-1 hidden" />}
-                  {isGeneratingVideo ? 'Recompiling...' : 'Regenerate Video'}
-                </Button>
-              )}
-              {canContinueSeries && (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleContinueSeries} 
-                  disabled={isContinuing || isGeneratingVideo}
-                  className="bg-blue-50 hover:bg-blue-100 text-blue-600 border-blue-200 dark:bg-blue-950/30 dark:hover:bg-blue-900/50 dark:border-blue-900/50"
-                >
-                  {isContinuing ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <BookOpen className="h-4 w-4 mr-1" />}
-                  {isContinuing ? 'Continuing...' : 'Continue Series'}
-                </Button>
-              )}
-              {story.video_url && (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleDownload} 
-                  disabled={isDownloading}
-                  className="bg-green-50 hover:bg-green-100 text-green-600 border-green-200 dark:bg-green-950/30 dark:hover:bg-green-900/50 dark:border-green-900/50"
-                >
-                  {isDownloading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Download className="h-4 w-4 mr-1" />}
-                  {isDownloading ? (downloadProgress > 0 ? `Downloading ${downloadProgress}%` : 'Starting...') : 'Download Video'}
-                </Button>
-              )}
-              {story.video_url && !story.youtube_url && (youtubeMainConnected || youtubeSubConnected) && (
-                <div className="flex items-center gap-2">
-                  <Select value={uploadChannel} onValueChange={(val: 'main' | 'sub') => setUploadChannel(val)}>
-                    <SelectTrigger className="w-32 h-9 text-xs">
-                      <SelectValue placeholder="Channel" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {youtubeMainConnected && <SelectItem value="main">Main Channel</SelectItem>}
-                      {youtubeSubConnected && <SelectItem value="sub">Sub Channel</SelectItem>}
-                    </SelectContent>
-                  </Select>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={handleUploadYouTube} 
-                    disabled={isUploadingYouTube}
-                    className="bg-red-50 hover:bg-red-100 text-red-600 border-red-200 dark:bg-red-950/30 dark:hover:bg-red-900/50 dark:border-red-900/50"
-                  >
-                    {isUploadingYouTube ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Youtube className="h-4 w-4 mr-1" />}
-                    {isUploadingYouTube ? 'Uploading...' : 'Upload to YouTube'}
-                  </Button>
-                </div>
-              )}
-              {hasStuckScenes && !isGeneratingImages && (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleRetryImages} 
-                  disabled={isRetrying}
-                >
-                  {isRetrying ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <AlertCircle className="h-4 w-4 mr-1" />}
-                  Retry Images
-                </Button>
-              )}
+                  className="scale-75 data-[state=checked]:bg-red-500"
+                />
+                <Label htmlFor={`yt-upload-${story.id}`} className="text-xs font-medium cursor-pointer flex items-center gap-1 select-none pr-1">
+                  <Youtube className="w-3.5 h-3.5 text-red-500" />
+                  Auto-Upload
+                </Label>
+              </div>
+            )}
+            {canGenerateVideo && (
+              <Button 
+                variant="default" 
+                size="sm" 
+                onClick={handleGenerateVideo} 
+                disabled={isGeneratingVideo || isUploadingYouTube}
+                className="bg-purple-600 hover:bg-purple-700 text-white shadow-sm"
+              >
+                {(isGeneratingVideo || isUploadingYouTube) ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <AlertCircle className="h-4 w-4 mr-2 hidden" />}
+                {isUploadingYouTube ? 'Uploading to YouTube...' : 'Generate Video'}
+              </Button>
+            )}
+            {canRegenerateVideo && (
+              <Button 
+                variant="default" 
+                size="sm" 
+                onClick={handleGenerateVideo} 
+                disabled={isGeneratingVideo || isUploadingYouTube}
+                className="bg-purple-600 hover:bg-purple-700 text-white shadow-sm"
+              >
+                {(isGeneratingVideo || isUploadingYouTube) ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <AlertCircle className="h-4 w-4 mr-2 hidden" />}
+                {isGeneratingVideo ? 'Recompiling...' : 'Regenerate Video'}
+              </Button>
+            )}
+            {canContinueSeries && (
               <Button 
                 variant="outline" 
                 size="sm" 
-                onClick={handleDelete} 
-                disabled={isDeleting}
-                className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50"
+                onClick={handleContinueSeries} 
+                disabled={isContinuing || isGeneratingVideo}
+                className="bg-blue-50 hover:bg-blue-100 text-blue-600 border-blue-200 dark:bg-blue-950/30 dark:hover:bg-blue-900/50 dark:border-blue-900/50 shadow-sm"
               >
-                {isDeleting ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Trash2 className="h-4 w-4 mr-1" />}
-                {story.status === 'failed' || story.status === 'generating' || story.scenes.some(s => s.image_status === 'failed' || s.image_status === 'generating') ? 'Cancel & Delete' : 'Delete'}
+                {isContinuing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <BookOpen className="h-4 w-4 mr-2" />}
+                {isContinuing ? 'Continuing...' : 'Continue Series'}
               </Button>
-            </div>
             )}
-          </div>
-        </div>
-      </CardHeader>
-      {isExpanded && (
-        <CardContent className="p-6">
-          {story.video_url && (
-          <div className="mb-8 p-4 bg-slate-900 rounded-xl shadow-inner">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-4">
-              <h3 className="text-white text-lg font-semibold flex items-center gap-2">
-                <span className="text-purple-400">🎬</span> Final Generated Video
-              </h3>
-              {story.youtube_url && (
-                <a href={story.youtube_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm font-medium text-red-400 hover:text-red-300 bg-red-950/30 px-3 py-1.5 rounded-lg border border-red-900/50 transition-colors">
-                  <Youtube className="w-4 h-4" />
-                  View on YouTube (Private)
-                </a>
-              )}
-            </div>
-            <video 
-              src={story.video_url} 
-              controls 
-              className="w-full aspect-video rounded-lg shadow-lg bg-black"
-            />
-          </div>
-        )}
-
-        {story.scenes.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
-            <p>Generating scenes...</p>
-          </div>
-        ) : (
-          <div className="space-y-8">
-            {story.scenes.map((scene) => (
-              <div key={scene.id} className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="text-sm">
-                    Scene {scene.scene_number}
-                  </Badge>
-                </div>
-
-                <div className="bg-slate-50 dark:bg-slate-900/50 rounded-lg p-4 border">
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap">{scene.script}</p>
-                </div>
-
-                {scene.image_url ? (
-                  <div className="relative w-full aspect-video rounded-lg overflow-hidden border shadow-sm">
-                    <Image
-                      src={scene.image_url}
-                      alt={`Scene ${scene.scene_number}`}
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    />
-                  </div>
-                ) : scene.image_status === 'generating' ? (
-                  <div className="w-full aspect-video rounded-lg border bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
-                    <div className="text-center">
-                      <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2 text-primary" />
-                      <p className="text-sm text-muted-foreground">Generating image...</p>
-                    </div>
-                  </div>
-                ) : scene.image_status === 'failed' ? (
-                  <div className="w-full aspect-video rounded-lg border bg-red-50 dark:bg-red-900/10 flex items-center justify-center">
-                    <div className="text-center">
-                      <AlertCircle className="h-8 w-8 mx-auto mb-2 text-red-500" />
-                      <p className="text-sm text-red-600 dark:text-red-400">Image generation failed</p>
-                    </div>
-                  </div>
-                ) : scene.image_status === 'skipped' ? null : (
-                  <div className="w-full aspect-video rounded-lg border bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
-                    <p className="text-sm text-muted-foreground">Waiting to generate image...</p>
-                  </div>
-                )}
-
-
+            {story.video_url && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleDownload} 
+                disabled={isDownloading}
+                className="bg-green-50 hover:bg-green-100 text-green-600 border-green-200 dark:bg-green-950/30 dark:hover:bg-green-900/50 dark:border-green-900/50 shadow-sm"
+              >
+                {isDownloading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Download className="h-4 w-4 mr-2" />}
+                {isDownloading ? (downloadProgress > 0 ? `Downloading ${downloadProgress}%` : 'Starting...') : 'Download Video'}
+              </Button>
+            )}
+            {story.video_url && !story.youtube_url && (youtubeMainConnected || youtubeSubConnected) && (
+              <div className="flex items-center gap-2 bg-white dark:bg-slate-950 p-1 rounded-md border shadow-sm">
+                <Select value={uploadChannel} onValueChange={(val: 'main' | 'sub') => setUploadChannel(val)}>
+                  <SelectTrigger className="w-28 h-7 text-xs border-none shadow-none focus:ring-0">
+                    <SelectValue placeholder="Channel" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {youtubeMainConnected && <SelectItem value="main">Main Channel</SelectItem>}
+                    {youtubeSubConnected && <SelectItem value="sub">Sub Channel</SelectItem>}
+                  </SelectContent>
+                </Select>
+                <div className="w-px h-4 bg-slate-200 dark:bg-slate-800" />
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={handleUploadYouTube} 
+                  disabled={isUploadingYouTube}
+                  className="h-7 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/50"
+                >
+                  {isUploadingYouTube ? <Loader2 className="h-3 w-3 animate-spin mr-1.5" /> : <Youtube className="h-3 w-3 mr-1.5" />}
+                  {isUploadingYouTube ? 'Uploading...' : 'Upload'}
+                </Button>
               </div>
-            ))}
+            )}
+            {hasStuckScenes && !isGeneratingImages && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleRetryImages} 
+                disabled={isRetrying}
+                className="shadow-sm"
+              >
+                {isRetrying ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <AlertCircle className="h-4 w-4 mr-2" />}
+                Retry Images
+              </Button>
+            )}
+            <div className="flex-1" />
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleDelete} 
+              disabled={isDeleting}
+              className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50 shadow-sm ml-auto"
+            >
+              {isDeleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
+              {story.status === 'failed' || story.status === 'generating' || story.scenes.some(s => s.image_status === 'failed' || s.image_status === 'generating') ? 'Cancel & Delete' : 'Delete'}
+            </Button>
           </div>
         )}
-      </CardContent>
+      </CardHeader>
+      
+      {isExpanded && (
+        <CardContent className="p-6 bg-slate-50/50 dark:bg-slate-900/20">
+          {story.video_url && (
+            <div className="mb-8 p-5 bg-slate-950 rounded-xl shadow-inner border border-slate-800">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-4">
+                <h3 className="text-white text-lg font-semibold flex items-center gap-2">
+                  <span className="text-purple-400">🎬</span> Final Generated Video
+                </h3>
+                {story.youtube_url && (
+                  <a href={story.youtube_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm font-medium text-red-400 hover:text-red-300 bg-red-950/30 px-3 py-1.5 rounded-lg border border-red-900/50 transition-colors">
+                    <Youtube className="w-4 h-4" />
+                    View on YouTube (Private)
+                  </a>
+                )}
+              </div>
+              <video 
+                src={story.video_url} 
+                controls 
+                className="w-full aspect-video rounded-lg shadow-lg bg-black ring-1 ring-white/10"
+              />
+            </div>
+          )}
+
+          {story.scenes.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 px-4 bg-white dark:bg-slate-950 rounded-xl border border-dashed border-slate-300 dark:border-slate-800">
+              <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+              <p className="text-lg font-medium text-slate-700 dark:text-slate-300">Generating your storyboard</p>
+              <p className="text-sm text-muted-foreground mt-1 text-center max-w-sm">
+                The AI is crafting your scenes, writing the script, and preparing the image prompts. This usually takes a minute.
+              </p>
+            </div>
+          ) : (
+            <div className={viewMode === 'card' ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" : "space-y-6"}>
+              {story.scenes.map((scene) => (
+                <div key={scene.id} className={`flex ${viewMode === 'card' ? 'flex-col' : 'flex-col sm:flex-row'} bg-white dark:bg-slate-950 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all duration-200`}>
+                  
+                  {/* Image Section */}
+                  <div className={`relative ${viewMode === 'card' ? 'w-full aspect-video border-b' : 'w-full sm:w-64 md:w-80 shrink-0 border-b sm:border-b-0 sm:border-r'} border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 flex items-center justify-center overflow-hidden group`}>
+                    <div className="absolute top-3 left-3 z-10">
+                      <Badge variant="secondary" className="bg-white/90 dark:bg-slate-950/90 text-slate-900 dark:text-slate-100 backdrop-blur-md shadow-sm font-semibold border-none">
+                        Scene {scene.scene_number}
+                      </Badge>
+                    </div>
+                    
+                    {scene.image_url ? (
+                      <Image
+                        src={scene.image_url}
+                        alt={`Scene ${scene.scene_number}`}
+                        fill
+                        className="object-cover transition-transform duration-500 group-hover:scale-105"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      />
+                    ) : scene.image_status === 'generating' ? (
+                      <div className="flex flex-col items-center justify-center p-6 text-center w-full h-full min-h-[200px]">
+                        <Loader2 className="h-8 w-8 animate-spin mb-3 text-primary/70" />
+                        <p className="text-xs font-medium text-slate-600 dark:text-slate-400">Painting image...</p>
+                      </div>
+                    ) : scene.image_status === 'failed' ? (
+                      <div className="flex flex-col items-center justify-center p-6 text-center w-full h-full min-h-[200px] bg-red-50/50 dark:bg-red-950/20">
+                        <AlertCircle className="h-8 w-8 mb-3 text-red-500/70" />
+                        <p className="text-xs font-medium text-red-600 dark:text-red-400">Generation failed</p>
+                      </div>
+                    ) : scene.image_status === 'skipped' ? (
+                      <div className="flex flex-col items-center justify-center p-6 text-center w-full h-full min-h-[200px] bg-slate-100/50 dark:bg-slate-800/50">
+                        <div className="w-12 h-12 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center mb-3">
+                          <span className="text-xl opacity-50 grayscale">⏭️</span>
+                        </div>
+                        <p className="text-xs font-medium text-slate-500 dark:text-slate-500">Skipped</p>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center p-6 text-center w-full h-full min-h-[200px]">
+                        <div className="w-8 h-8 rounded-full border-2 border-slate-300 dark:border-slate-700 border-t-transparent animate-spin mb-3"></div>
+                        <p className="text-xs font-medium text-slate-500">Pending in queue...</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Script Section */}
+                  <div className={`flex flex-col flex-1 p-5 ${viewMode === 'card' ? 'h-48' : ''}`}>
+                    <div className={`flex-1 overflow-y-auto pr-2 ${viewMode === 'card' ? 'text-sm' : 'text-base sm:text-sm md:text-base'} text-slate-700 dark:text-slate-300 leading-relaxed space-y-3`}>
+                      {scene.script.split('\n').map((paragraph, idx) => (
+                        paragraph.trim() ? <p key={idx}>{paragraph}</p> : null
+                      ))}
+                    </div>
+                  </div>
+
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
       )}
     </Card>
   );
