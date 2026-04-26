@@ -517,7 +517,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
                 size="sm" 
                 onClick={handleGenerateVideo} 
                 disabled={isGeneratingVideo || isUploadingYouTube}
-                className="bg-purple-600 hover:bg-purple-700 text-white shadow-sm transition-colors"
+                className={`bg-purple-600 hover:bg-purple-700 text-white shadow-sm transition-colors ${!(isGeneratingVideo || isUploadingYouTube) ? 'animate-pulse hover:animate-none' : ''}`}
               >
                 {(isGeneratingVideo || isUploadingYouTube) ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <AlertCircle className="h-4 w-4 mr-2 hidden" />}
                 {isUploadingYouTube ? 'Uploading to YouTube...' : 'Generate Video'}
