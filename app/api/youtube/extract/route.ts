@@ -45,33 +45,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // 1. Strip YouTube URL down to just the video ID to prevent unexpected token errors
+    // 1. Extract YouTube video ID
     let videoId = youtubeUrl;
-    try {
-      if (youtubeUrl.includes('youtube.com') || youtubeUrl.includes('youtu.be')) {
-        const urlObj = new URL(youtubeUrl);
-        if (urlObj.hostname.includes('youtube.com')) {
-          if (urlObj.pathname.includes('/shorts/')) {
-             videoId = urlObj.pathname.split('/').pop() || videoId;
-          } else {
-             videoId = urlObj.searchParams.get('v') || videoId;
-          }
-        } else if (urlObj.hostname.includes('youtu.be')) {
-          videoId = urlObj.pathname.slice(1);
-        }
-      } else {
-        const match = youtubeUrl.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/);
-        if (match) videoId = match[1];
+    const ytRegex = /(?:youtube\.com.*(?:\?|&)v=|youtu\.be\/|youtube\.com\/(?:embed|v|shorts)\/)([\w-]{11})/;
+    const match = youtubeUrl.match(ytRegex);
+
+    if (match && match[1]) {
+      videoId = match[1];
+    } else {
+      // Fallback: match any 11-character alphanumeric string with dashes/underscores
+      const fallbackMatch = youtubeUrl.match(/[\w-]{11}/);
+      if (fallbackMatch && fallbackMatch[0]) {
+        videoId = fallbackMatch[0];
       }
-    } catch (e) {
-      const match = youtubeUrl.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/);
-      if (match) videoId = match[1];
-    }
-    
-    // Fallback if parsing didn't find exactly 11 chars, just try the regex one more time
-    if (videoId.length !== 11) {
-       const match = youtubeUrl.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/);
-       if (match) videoId = match[1];
     }
 
     // 2. Fetch YouTube Transcript
