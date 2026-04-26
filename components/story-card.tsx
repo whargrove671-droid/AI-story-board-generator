@@ -517,7 +517,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
                 size="sm" 
                 onClick={handleGenerateVideo} 
                 disabled={isGeneratingVideo || isUploadingYouTube}
-                className="bg-purple-600 hover:bg-purple-700 text-white shadow-sm"
+                className="bg-purple-600 hover:bg-purple-700 text-white shadow-sm transition-colors"
               >
                 {(isGeneratingVideo || isUploadingYouTube) ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <AlertCircle className="h-4 w-4 mr-2 hidden" />}
                 {isUploadingYouTube ? 'Uploading to YouTube...' : 'Generate Video'}
@@ -529,7 +529,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
                 size="sm" 
                 onClick={handleGenerateVideo} 
                 disabled={isGeneratingVideo || isUploadingYouTube}
-                className="bg-purple-600 hover:bg-purple-700 text-white shadow-sm"
+                className="bg-purple-600 hover:bg-purple-700 text-white shadow-sm transition-colors"
               >
                 {(isGeneratingVideo || isUploadingYouTube) ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <AlertCircle className="h-4 w-4 mr-2 hidden" />}
                 {isGeneratingVideo ? 'Recompiling...' : 'Regenerate Video'}
@@ -541,7 +541,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
                 size="sm" 
                 onClick={handleContinueSeries} 
                 disabled={isContinuing || isGeneratingVideo}
-                className="bg-blue-50 hover:bg-blue-100 text-blue-600 border-blue-200 dark:bg-blue-950/30 dark:hover:bg-blue-900/50 dark:border-blue-900/50 shadow-sm"
+                className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:hover:bg-blue-900/50 dark:border-blue-900/50 shadow-sm transition-colors"
               >
                 {isContinuing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <BookOpen className="h-4 w-4 mr-2" />}
                 {isContinuing ? 'Continuing...' : 'Continue Series'}
@@ -553,7 +553,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
                 size="sm" 
                 onClick={handleDownload} 
                 disabled={isDownloading}
-                className="bg-green-50 hover:bg-green-100 text-green-600 border-green-200 dark:bg-green-950/30 dark:hover:bg-green-900/50 dark:border-green-900/50 shadow-sm"
+                className="bg-green-50 hover:bg-green-100 text-green-700 border-green-200 dark:bg-green-950/30 dark:hover:bg-green-900/50 dark:border-green-900/50 shadow-sm transition-colors"
               >
                 {isDownloading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Download className="h-4 w-4 mr-2" />}
                 {isDownloading ? (downloadProgress > 0 ? `Downloading ${downloadProgress}%` : 'Starting...') : 'Download Video'}
@@ -576,7 +576,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
                   size="sm" 
                   onClick={handleUploadYouTube} 
                   disabled={isUploadingYouTube}
-                  className="h-7 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/50"
+                  className="h-7 text-xs text-red-700 hover:text-red-800 hover:bg-red-50 dark:hover:bg-red-950/50 transition-colors"
                 >
                   {isUploadingYouTube ? <Loader2 className="h-3 w-3 animate-spin mr-1.5" /> : <Youtube className="h-3 w-3 mr-1.5" />}
                   {isUploadingYouTube ? 'Uploading...' : 'Upload'}
@@ -601,7 +601,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
               size="sm" 
               onClick={handleDelete} 
               disabled={isDeleting}
-              className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50 shadow-sm ml-auto"
+              className="bg-red-50 hover:bg-red-100 text-red-700 border-red-200 dark:bg-red-950/30 dark:hover:bg-red-900/50 dark:border-red-900/50 shadow-sm transition-colors ml-auto"
             >
               {isDeleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
               {story.status === 'failed' || story.status === 'generating' || story.scenes.some(s => s.image_status === 'failed' || s.image_status === 'generating') ? 'Cancel & Delete' : 'Delete'}
