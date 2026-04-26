@@ -63,8 +63,17 @@ export async function POST(request: NextRequest) {
         let response;
         let retries = 3;
         let lastError: Error | null = null;
+        
+        // Define primary and fallback models
+        const models = [
+          'black-forest-labs/FLUX.1-schnell',
+          'stabilityai/stable-diffusion-xl-base-1.0'
+        ];
 
         for (let i = 0; i < retries; i++) {
+          // Use the primary model first, then fallback to others if available
+          const currentModel = models[Math.min(i, models.length - 1)];
+          
           try {
             response = await fetch('https://api.together.xyz/v1/images/generations', {
               method: 'POST',
@@ -73,7 +82,7 @@ export async function POST(request: NextRequest) {
                 'Content-Type': 'application/json',
               },
               body: JSON.stringify({
-                model: 'black-forest-labs/FLUX.1-schnell',
+                model: currentModel,
                 prompt: `${scene.image_prompt}. Cinematic, high quality, detailed, 16:9 aspect ratio`,
                 width: 1024,
                 height: 576,
@@ -91,7 +100,7 @@ export async function POST(request: NextRequest) {
             break;
           } catch (error: any) {
             lastError = error;
-            console.warn(`Attempt ${i + 1} failed for scene ${scene.id}: ${error.message}`);
+            console.warn(`Attempt ${i + 1} failed for scene ${scene.id} using model ${currentModel}: ${error.message}`);
             if (i < retries - 1) {
               // Delay before retry
               await new Promise((resolve) => setTimeout(resolve, 2000 * (i + 1)));
