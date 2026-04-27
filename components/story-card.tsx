@@ -844,7 +844,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
                       size="sm" 
                       onClick={handleDelete} 
                       disabled={isDeleting}
-                      className="bg-red-950/30 hover:bg-red-900/50 text-red-500 border border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.2)] hover:shadow-[0_0_15px_rgba(239,68,68,0.4)] transition-all font-mono uppercase rounded-none w-full"
+                      className={`bg-red-950/30 hover:bg-red-900/50 text-red-500 border border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.2)] hover:shadow-[0_0_15px_rgba(239,68,68,0.4)] transition-all font-mono uppercase rounded-none w-full ${story.status === 'failed' || story.scenes.some(s => s.image_status === 'failed') ? 'animate-pulse hover:animate-none' : ''}`}
                     >
                       {isDeleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
                       {story.status === 'failed' || story.status === 'generating' || story.scenes.some(s => s.image_status === 'failed' || s.image_status === 'generating') ? 'CANCEL_&_DELETE' : 'SYS_DELETE'}
