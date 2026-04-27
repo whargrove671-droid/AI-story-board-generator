@@ -96,19 +96,30 @@ export function RestoreButton({ onRestore, className }: RestoreButtonProps) {
         throw new Error('Malformed backup: Expected an array of stories.');
       }
 
-      const totalStories = Math.max(stories.length, 1);
-      let completedStories = 0;
+      const totalTasks = stories.reduce((acc: number, story: any) => {
+        let tasks = 1; // Story DB insert
+        if (story.video_url) tasks++; // Video upload
+        if (story.scenes && Array.isArray(story.scenes)) {
+          tasks += story.scenes.filter((s: any) => s.image_url).length; // Image uploads
+        }
+        return acc + tasks;
+      }, 0);
+
+      let completedTasks = 0;
+      const updateProgress = (text: string) => {
+        setProgressText(text);
+        setProgress(10 + (completedTasks / Math.max(totalTasks, 1)) * 85);
+      };
 
       // 2. Extract videos and upload them back to Supabase
       for (const story of stories) {
         const safeTitle = story.title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-        setProgress(10 + (completedStories / totalStories) * 85);
-        setProgressText(`RESTORING STORY ${completedStories + 1} OF ${stories.length}...`);
 
         if (story.video_url) {
           const videoFile = loadedZip.file(`videos/${safeTitle}.mp4`);
           
           if (videoFile) {
+            updateProgress(`RESTORING VIDEO: ${safeTitle.substring(0, 20)}...`);
             const videoBlob = await videoFile.async('blob');
             const fileName = `restored_${Date.now()}_${safeTitle}.mp4`;
 
@@ -131,6 +142,10 @@ export function RestoreButton({ onRestore, className }: RestoreButtonProps) {
               
               story.video_url = publicUrlData.publicUrl;
             }
+            completedTasks++;
+            updateProgress(`RESTORED VIDEO: ${safeTitle.substring(0, 20)}...`);
+          } else {
+            completedTasks++;
           }
         }
 
@@ -144,6 +159,7 @@ export function RestoreButton({ onRestore, className }: RestoreButtonProps) {
               const imageFile = loadedZip.file(`images/${imageFileName}`);
 
               if (imageFile) {
+                updateProgress(`RESTORING IMAGE: SCENE ${sceneNum}...`);
                 const imageBlob = await imageFile.async('blob');
                 const newImageName = `restored_${Date.now()}_${imageFileName}`;
 
@@ -165,12 +181,17 @@ export function RestoreButton({ onRestore, className }: RestoreButtonProps) {
                   
                   scene.image_url = imagePublicUrlData.publicUrl;
                 }
+                completedTasks++;
+                updateProgress(`RESTORED IMAGE: SCENE ${sceneNum}...`);
+              } else {
+                completedTasks++;
               }
             }
           }
         }
 
         // 4. Save the restored story to the database
+        updateProgress(`SAVING STORY DATA: ${safeTitle.substring(0, 20)}...`);
         // Extract scenes so we can insert the story and its scenes into separate tables
         const { scenes, ...storyData } = story;
         
@@ -196,7 +217,8 @@ export function RestoreButton({ onRestore, className }: RestoreButtonProps) {
 
           if (scenesError) throw scenesError;
         }
-        completedStories++;
+        completedTasks++;
+        updateProgress(`SAVED STORY DATA: ${safeTitle.substring(0, 20)}...`);
       }
 
       setProgress(98);
