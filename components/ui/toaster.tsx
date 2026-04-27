@@ -1,5 +1,6 @@
 'use client';
 
+import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import {
   Toast,
@@ -19,7 +20,14 @@ export function Toaster() {
         return (
           <Toast key={id} {...props}>
             <div className="grid gap-1">
-              {title && <ToastTitle>{title}</ToastTitle>}
+              {title && (
+                <ToastTitle>
+                  <span className={cn("animate-pulse", props.variant === 'destructive' ? "text-red-500" : "text-cyan-500")}>
+                    {props.variant === 'destructive' ? '⚠' : '▶'}
+                  </span>
+                  <span>{title}</span>
+                </ToastTitle>
+              )}
               {description && (
                 <ToastDescription>{description}</ToastDescription>
               )}
