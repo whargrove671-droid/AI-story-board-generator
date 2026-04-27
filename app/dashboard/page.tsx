@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Loader as Loader2, LogOut, Sparkles, Image as ImageIcon, BookOpen, Youtube, LayoutGrid, LayoutList } from 'lucide-react';
 import { StoryCard } from '@/components/story-card';
+import { BackupButton } from '@/components/backup-button';
+import { RestoreButton } from '@/components/restore-button';
 
 type Scene = {
   id: string;
@@ -26,6 +28,8 @@ type Story = {
   title: string;
   status: string;
   created_at: string;
+  video_url?: string | null;
+  youtube_url?: string | null;
   scenes: Scene[];
 };
 
@@ -382,6 +386,11 @@ export default function DashboardPage() {
               <ImageIcon className="h-6 w-6" />
               DATA_ARCHIVES
             </h2>
+          <div className="flex flex-wrap items-center justify-end gap-3">
+            <div className="flex items-center gap-2 bg-black p-1 rounded-none border border-cyan-900/50 shadow-[0_0_10px_rgba(6,182,212,0.1)]">
+              <BackupButton getData={() => stories} className="h-8 px-3 rounded-none font-mono uppercase text-xs" />
+              <RestoreButton onRestore={() => loadStories()} className="h-8 px-3 rounded-none font-mono uppercase text-xs" />
+            </div>
             <div className="flex items-center gap-2 bg-black p-1 rounded-none border border-cyan-900/50 shadow-[0_0_10px_rgba(6,182,212,0.1)] w-max">
               <Button 
                 variant="outline" 
