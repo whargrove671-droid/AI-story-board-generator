@@ -58,6 +58,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
   const [editingSceneId, setEditingSceneId] = useState<string | null>(null);
   const [editedScript, setEditedScript] = useState<string>('');
   const [isSavingScript, setIsSavingScript] = useState(false);
+  const [hasCopiedScript, setHasCopiedScript] = useState(false);
   const [editingPromptSceneId, setEditingPromptSceneId] = useState<string | null>(null);
   const [editedPrompt, setEditedPrompt] = useState<string>('');
   const [isSavingPrompt, setIsSavingPrompt] = useState(false);
@@ -968,6 +969,14 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
                           disabled={isSavingScript}
                         />
                         <div className="flex justify-end gap-2 mt-auto">
+                          <Button variant="outline" size="sm" onClick={() => { 
+                            navigator.clipboard.writeText(editedScript); 
+                            toast({ title: 'SYS_COPIED', description: 'SCRIPT COPIED TO CLIPBOARD.' }); 
+                            setHasCopiedScript(true);
+                            setTimeout(() => setHasCopiedScript(false), 2000);
+                          }} type="button" className="h-7 text-xs bg-black text-cyan-600 border-cyan-900 hover:text-cyan-400 hover:bg-cyan-950 rounded-none font-mono mr-auto">
+                            {hasCopiedScript ? <Check className="w-3 h-3 mr-1 text-emerald-400" /> : <Copy className="w-3 h-3 mr-1" />} {hasCopiedScript ? 'COPIED' : 'COPY'}
+                          </Button>
                           <Button variant="outline" size="sm" onClick={() => handleCancelEdit(scene.script)} disabled={isSavingScript} className="h-7 text-xs bg-black text-cyan-600 border-cyan-900 hover:text-cyan-400 hover:bg-cyan-950 rounded-none font-mono">
                             <X className="w-3 h-3 mr-1" /> CANCEL
                           </Button>
