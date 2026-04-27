@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Loader as Loader2, CircleAlert as AlertCircle, CircleCheck as CheckCircle, Trash2, Youtube, BookOpen, Download, ChevronDown, ChevronUp, RefreshCw, Edit2, Check, X } from 'lucide-react';
+import { Loader as Loader2, CircleAlert as AlertCircle, CircleCheck as CheckCircle, Trash2, Youtube, BookOpen, Download, ChevronDown, ChevronUp, RefreshCw, Edit2, Check, X, Copy } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -854,6 +854,9 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
                           disabled={isSavingPrompt}
                         />
                         <div className="flex justify-end gap-2 mt-auto">
+                          <Button variant="outline" size="sm" onClick={() => { navigator.clipboard.writeText(editedPrompt); toast({ title: 'SYS_COPIED', description: 'PROMPT COPIED TO CLIPBOARD.' }); }} type="button" className="h-7 text-xs bg-black text-cyan-600 border-cyan-900 hover:text-cyan-400 hover:bg-cyan-950 rounded-none font-mono mr-auto">
+                            <Copy className="w-3 h-3 mr-1" /> COPY
+                          </Button>
                           <Button variant="outline" size="sm" onClick={handleCancelEditPrompt} disabled={isSavingPrompt} className="h-7 text-xs bg-black text-cyan-600 border-cyan-900 hover:text-cyan-400 hover:bg-cyan-950 rounded-none font-mono">
                             <X className="w-3 h-3 mr-1" /> CANCEL
                           </Button>
