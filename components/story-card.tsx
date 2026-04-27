@@ -67,6 +67,33 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
   const supabase = createClient();
   const { toast } = useToast();
 
+  const sysToast = (title: string, description: string) => {
+    toast({
+      title: (
+        <div className="flex items-center gap-2">
+          <span className="text-cyan-500 animate-pulse">▶</span>
+          <span>{title}</span>
+        </div>
+      ),
+      description: <div className="text-cyan-100/70 border-l-2 border-cyan-900/50 pl-2 mt-1">{description}</div>,
+      className: "bg-black/95 border border-cyan-500 text-cyan-400 font-mono rounded-none shadow-[0_0_15px_rgba(6,182,212,0.4)] uppercase tracking-wide",
+    });
+  };
+
+  const errToast = (title: string, description: string) => {
+    toast({
+      title: (
+        <div className="flex items-center gap-2">
+          <span className="text-red-500 animate-pulse">⚠</span>
+          <span>{title}</span>
+        </div>
+      ),
+      description: <div className="text-red-200/70 border-l-2 border-red-900/50 pl-2 mt-1">{description}</div>,
+      variant: "destructive",
+      className: "bg-red-950/90 border border-red-500 text-red-400 font-mono rounded-none shadow-[0_0_15px_rgba(239,68,68,0.4)] uppercase tracking-wide",
+    });
+  };
+
   useEffect(() => {
     setIsExpanded(viewMode === 'card');
   }, [viewMode]);
@@ -119,7 +146,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
   const handleGenerateVideo = async () => {
     try {
       setIsGeneratingVideo(true);
-      toast({ title: 'Generating Audio', description: 'Generating narration for scenes...' });
+      sysToast('SYS.AUDIO_GEN', 'GENERATING NARRATION FOR SCENES...');
       
       const audioResponse = await fetch('/api/generate-audio', {
         method: 'POST',
@@ -131,7 +158,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
         throw new Error(err.error || 'Failed to generate audio');
       }
 
-      toast({ title: 'Compiling Video', description: 'Merging images and audio. This may take a minute...' });
+      sysToast('SYS.VIDEO_COMPILER', 'MERGING IMAGES AND AUDIO. PLEASE WAIT...');
       
       // Update local status so UI shows it's compiling
       onRefresh();
@@ -146,14 +173,14 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
         throw new Error(err.error || 'Failed to compile video');
       }
 
-      toast({ title: 'Success', description: 'Video generated successfully!' });
+      sysToast('SYS.SUCCESS', 'VIDEO GENERATED SUCCESSFULLY.');
       onRefresh();
       playSuccessSound();
 
       // YouTube Auto-Upload
       if (autoUpload) {
         setIsUploadingYouTube(true);
-        toast({ title: 'YouTube Upload', description: `Uploading video to YouTube ${uploadChannel} channel as private...` });
+        sysToast('SYS.UPLINK_INIT', `UPLOADING TO YOUTUBE [${uploadChannel.toUpperCase()}] AS PRIVATE...`);
         
         const ytResponse = await fetch('/api/youtube/upload', {
           method: 'POST',
@@ -166,13 +193,13 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
           throw new Error(err.error || 'Failed to upload to YouTube');
         }
         
-        toast({ title: 'Success', description: 'Video automatically uploaded to YouTube!' });
+        sysToast('SYS.UPLINK_ESTABLISHED', 'VIDEO AUTO-UPLOADED TO YOUTUBE.');
         onRefresh();
         playSuccessSound();
       }
 
     } catch (error: any) {
-      toast({ title: 'Error', description: error.message || 'Failed to process', variant: 'destructive' });
+      errToast('ERR.CRITICAL', error.message || 'PROCESS FAILED.');
     } finally {
       setIsGeneratingVideo(false);
       setIsUploadingYouTube(false);
@@ -182,7 +209,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
   const handleUploadYouTube = async () => {
     try {
       setIsUploadingYouTube(true);
-      toast({ title: 'YouTube Upload', description: `Uploading video to YouTube ${uploadChannel} channel as private...` });
+      sysToast('SYS.UPLINK_INIT', `UPLOADING TO YOUTUBE [${uploadChannel.toUpperCase()}] AS PRIVATE...`);
       
       const ytResponse = await fetch('/api/youtube/upload', {
         method: 'POST',
@@ -195,11 +222,11 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
         throw new Error(err.error || 'Failed to upload to YouTube');
       }
       
-      toast({ title: 'Success', description: 'Video uploaded to YouTube!' });
+      sysToast('SYS.UPLINK_ESTABLISHED', 'VIDEO UPLOADED TO YOUTUBE.');
       onRefresh();
       playSuccessSound();
     } catch (error: any) {
-      toast({ title: 'Error', description: error.message || 'Failed to upload to YouTube', variant: 'destructive' });
+      errToast('ERR.UPLINK_FAILED', error.message || 'YOUTUBE UPLOAD FAILED.');
     } finally {
       setIsUploadingYouTube(false);
     }
@@ -211,7 +238,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
     try {
       setIsDownloading(true);
       setDownloadProgress(0);
-      toast({ title: 'Downloading', description: 'Preparing your video download...' });
+      sysToast('SYS.DOWNLOAD_INIT', 'PREPARING VIDEO DOWNLOAD...');
       
       const response = await fetch(story.video_url);
       if (!response.ok) throw new Error('Failed to fetch video');
@@ -246,7 +273,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
           }
           
           await writable.close();
-          toast({ title: 'Success', description: 'Video saved successfully!' });
+          sysToast('SYS.DOWNLOAD_COMPLETE', 'VIDEO SAVED TO LOCAL STORAGE.');
           downloadSucceeded = true;
         } catch (err: any) {
           // If user cancels the picker, just abort
@@ -282,11 +309,11 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
         
-        toast({ title: 'Success', description: 'Video download complete!' });
+        sysToast('SYS.DOWNLOAD_COMPLETE', 'VIDEO DOWNLOADED.');
         downloadSucceeded = true;
       }
     } catch (error: any) {
-      toast({ title: 'Download Failed', description: 'Opening video in a new tab as a fallback.', variant: 'destructive' });
+      errToast('ERR.DOWNLOAD_FAILED', 'FALLBACK: OPENING VIDEO IN NEW TAB.');
       window.open(story.video_url, '_blank');
     } finally {
       setIsDownloading(false);
@@ -302,10 +329,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
   const handleRetryImages = async () => {
     try {
       setIsRetrying(true);
-      toast({
-        title: 'Started Image Generation',
-        description: 'Image generation is running...',
-      });
+      sysToast('SYS.IMG_GEN_START', 'IMAGE GENERATION PROTOCOL INITIATED...');
       
       let hasMore = true;
       let errorCount = 0;
@@ -339,18 +363,11 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
       }
       
       if (!hasMore) {
-        toast({
-          title: 'Completed',
-          description: 'All images generated successfully.',
-        });
+        sysToast('SYS.IMG_GEN_COMPLETE', 'ALL IMAGES RENDERED SUCCESSFULLY.');
         playSuccessSound();
       }
     } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to retry image generation',
-        variant: 'destructive',
-      });
+      errToast('ERR.IMG_GEN_FAILED', error.message || 'RETRY PROTOCOL FAILED.');
     } finally {
       setIsRetrying(false);
     }
@@ -363,7 +380,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
         next.add(sceneId);
         return next;
       });
-      toast({ title: 'SYS_REGEN', description: 'INITIATING NEURAL RE-RENDER...' });
+      sysToast('SYS.REGEN', 'INITIATING NEURAL RE-RENDER...');
       
       const response = await fetch('/api/generate-images', {
         method: 'POST',
@@ -373,11 +390,11 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
       
       if (!response.ok) throw new Error('FAILED TO COMMUNICATE WITH RENDER NODE');
       
-      toast({ title: 'SYS_SUCCESS', description: 'SCENE RE-RENDER QUEUED.' });
+      sysToast('SYS.SUCCESS', 'SCENE RE-RENDER QUEUED.');
       onRefresh();
       playSuccessSound();
     } catch (error: any) {
-      toast({ title: 'ERR_FAILED', description: error.message || 'Render failed', variant: 'destructive' });
+      errToast('ERR.RENDER_FAILED', error.message || 'RENDER FAILED.');
     } finally {
       setRegeneratingScenes(prev => {
         const next = new Set(prev);
@@ -406,12 +423,12 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
       const { error } = await supabase.from('scenes').update({ image_prompt: editedPrompt }).eq('id', sceneId);
       if (error) throw error;
       
-      toast({ title: 'SYS_SUCCESS', description: 'IMAGE PROMPT UPDATED.' });
+      sysToast('SYS.SUCCESS', 'IMAGE PROMPT UPDATED.');
       setEditingPromptSceneId(null);
       onRefresh();
       playSuccessSound();
     } catch (error: any) {
-      toast({ title: 'ERR_FAILED', description: error.message || 'Failed to update prompt', variant: 'destructive' });
+      errToast('ERR.UPDATE_FAILED', error.message || 'FAILED TO UPDATE PROMPT.');
     } finally {
       setIsSavingPrompt(false);
     }
@@ -436,12 +453,12 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
       const { error } = await supabase.from('scenes').update({ script: editedScript }).eq('id', sceneId);
       if (error) throw error;
       
-      toast({ title: 'SYS_SUCCESS', description: 'SCRIPT UPDATED.' });
+      sysToast('SYS.SUCCESS', 'SCRIPT UPDATED.');
       setEditingSceneId(null);
       onRefresh();
       playSuccessSound();
     } catch (error: any) {
-      toast({ title: 'ERR_FAILED', description: error.message || 'Failed to update script', variant: 'destructive' });
+      errToast('ERR.UPDATE_FAILED', error.message || 'FAILED TO UPDATE SCRIPT.');
     } finally {
       setIsSavingScript(false);
     }
@@ -450,7 +467,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
   const handleContinueSeries = async () => {
     try {
       setIsContinuing(true);
-      toast({ title: 'Continuing Story', description: 'Generating the next part of the series...' });
+      sysToast('SYS.STORY_CONT', 'GENERATING NEXT SEQUENCE...');
 
       // Determine new title (e.g., "Story Title (Part 2)")
       let newTitle = story.title;
@@ -492,10 +509,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
         throw new Error(error.error || 'Failed to generate continuation');
       }
 
-      toast({
-        title: 'Success',
-        description: 'Story text generated! Now generating images...',
-      });
+      sysToast('SYS.SUCCESS', 'TEXT GENERATED. REROUTING TO IMAGE RENDERER...');
 
       onRefresh();
 
@@ -527,11 +541,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
       playSuccessSound();
 
     } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to continue story',
-        variant: 'destructive',
-      });
+      errToast('ERR.STORY_CONT_FAILED', error.message || 'FAILED TO CONTINUE STORY.');
     } finally {
       setIsContinuing(false);
     }
@@ -543,18 +553,11 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
       const { error } = await supabase.from('stories').delete().eq('id', story.id);
       if (error) throw error;
       
-      toast({
-        title: 'Story deleted',
-        description: 'The story has been removed from your dashboard.',
-      });
+      sysToast('SYS.PURGE_COMPLETE', 'STORY DATA PERMANENTLY DELETED.');
       onRefresh();
       playSuccessSound();
     } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to delete story',
-        variant: 'destructive',
-      });
+      errToast('ERR.PURGE_FAILED', error.message || 'FAILED TO DELETE STORY.');
       setIsDeleting(false);
     }
   };
@@ -920,7 +923,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
                         <div className="flex justify-end gap-2 mt-auto">
                           <Button variant="outline" size="sm" onClick={() => { 
                             navigator.clipboard.writeText(editedPrompt); 
-                            toast({ title: 'SYS_COPIED', description: 'PROMPT COPIED TO CLIPBOARD.' }); 
+                            sysToast('SYS.COPIED', 'PROMPT COPIED TO CLIPBOARD.'); 
                             setHasCopiedPrompt(true);
                             setTimeout(() => setHasCopiedPrompt(false), 2000);
                           }} type="button" className="h-7 text-xs bg-black text-cyan-600 border-cyan-900 hover:text-cyan-400 hover:bg-cyan-950 rounded-none font-mono mr-auto">
@@ -1027,7 +1030,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
                         <div className="flex justify-end gap-2 mt-auto">
                           <Button variant="outline" size="sm" onClick={() => { 
                             navigator.clipboard.writeText(editedScript); 
-                            toast({ title: 'SYS_COPIED', description: 'SCRIPT COPIED TO CLIPBOARD.' }); 
+                            sysToast('SYS.COPIED', 'SCRIPT COPIED TO CLIPBOARD.'); 
                             setHasCopiedScript(true);
                             setTimeout(() => setHasCopiedScript(false), 2000);
                           }} type="button" className="h-7 text-xs bg-black text-cyan-600 border-cyan-900 hover:text-cyan-400 hover:bg-cyan-950 rounded-none font-mono mr-auto">
