@@ -428,34 +428,34 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
     switch (status) {
       case 'completed':
         return (
-          <Badge variant="default" className="bg-green-500">
-            <CheckCircle className="mr-1 h-3 w-3" />
-            Completed
+          <Badge variant="default" className="bg-cyan-500/20 text-cyan-400 border border-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.3)] font-mono uppercase rounded-none">
+            <CheckCircle className="mr-2 h-3 w-3" />
+            SYS.COMPLETED
           </Badge>
         );
       case 'generating':
         return (
-          <Badge variant="default" className="bg-blue-500">
-            <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-            Generating Text & Images
+          <Badge variant="default" className="bg-fuchsia-500/20 text-fuchsia-400 border border-fuchsia-500 shadow-[0_0_10px_rgba(192,38,211,0.3)] font-mono uppercase rounded-none animate-pulse">
+            <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+            GENERATING_ASSETS
           </Badge>
         );
       case 'compiling_video':
         return (
-          <Badge variant="default" className="bg-purple-500">
-            <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-            Compiling Video
+          <Badge variant="default" className="bg-purple-500/20 text-purple-400 border border-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.3)] font-mono uppercase rounded-none animate-pulse">
+            <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+            COMPILING_VIDEO
           </Badge>
         );
       case 'failed':
         return (
-          <Badge variant="destructive">
-            <AlertCircle className="mr-1 h-3 w-3" />
-            Failed
+          <Badge variant="destructive" className="bg-red-500/20 text-red-400 border border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.3)] font-mono uppercase rounded-none">
+            <AlertCircle className="mr-2 h-3 w-3" />
+            ERR_FAILED
           </Badge>
         );
       default:
-        return <Badge variant="secondary">{status}</Badge>;
+        return <Badge variant="secondary" className="bg-zinc-900 text-zinc-400 border border-zinc-700 font-mono uppercase rounded-none">{status}</Badge>;
     }
   };
 
@@ -471,25 +471,25 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
   const totalWords = story.scenes.reduce((acc, scene) => acc + (scene.script ? scene.script.split(/\s+/).length : 0), 0);
 
   return (
-    <Card className="shadow-lg overflow-hidden transition-all duration-200">
-      <CardHeader className="border-b bg-gradient-to-r from-slate-50 to-slate-100/80 dark:from-slate-900/80 dark:to-slate-900">
+    <Card className="bg-black border border-cyan-900/50 shadow-[0_0_20px_rgba(6,182,212,0.1)] hover:shadow-[0_0_30px_rgba(6,182,212,0.2)] overflow-hidden transition-all duration-300 rounded-sm">
+      <CardHeader className="border-b border-cyan-900/50 bg-gradient-to-r from-black via-zinc-950 to-black">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="space-y-1.5 flex-1 min-w-0 w-full">
             <CardTitle 
-              className="text-xl flex items-center gap-2 cursor-pointer hover:text-primary transition-colors select-none" 
+              className="text-xl flex items-center gap-2 cursor-pointer text-cyan-400 hover:text-cyan-300 transition-colors select-none font-mono uppercase tracking-wider drop-shadow-[0_0_8px_rgba(6,182,212,0.5)]" 
               onClick={() => setIsExpanded(!isExpanded)}
             >
-              <div className="p-1 rounded-md hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors shrink-0">
-                {isExpanded ? <ChevronUp className="w-5 h-5 text-slate-500" /> : <ChevronDown className="w-5 h-5 text-slate-500" />}
+              <div className="p-1 border border-cyan-900/50 bg-black hover:bg-cyan-950/50 transition-colors shrink-0 rounded-none">
+                {isExpanded ? <ChevronUp className="w-5 h-5 text-cyan-500" /> : <ChevronDown className="w-5 h-5 text-cyan-500" />}
               </div>
               <span className="truncate">{story.title}</span>
             </CardTitle>
-            <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground pl-9">
+            <div className="flex flex-wrap items-center gap-2 text-xs text-cyan-700 font-mono pl-9">
               <span className="whitespace-nowrap">{new Date(story.created_at).toLocaleDateString()}</span>
-              <span className="hidden sm:inline">•</span>
-              <span className="whitespace-nowrap">{totalWords} words</span>
-              <span className="hidden sm:inline">•</span>
-              <span className="whitespace-nowrap">{story.scenes.length} scenes</span>
+              <span className="hidden sm:inline text-cyan-900">|</span>
+              <span className="whitespace-nowrap">{totalWords} WORDS</span>
+              <span className="hidden sm:inline text-cyan-900">|</span>
+              <span className="whitespace-nowrap">{story.scenes.length} SCENES</span>
             </div>
           </div>
           <div className="flex items-center pl-9 sm:pl-0 shrink-0">
@@ -499,35 +499,35 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
 
         {isExpanded && (
           <TooltipProvider delayDuration={300}>
-            <div className="flex flex-wrap items-center gap-3 pt-4 mt-4 border-t border-slate-200 dark:border-slate-800">
+            <div className="flex flex-wrap items-center gap-3 pt-4 mt-4 border-t border-cyan-900/50">
               {(youtubeMainConnected || youtubeSubConnected) && (
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <div className="flex items-center space-x-2 bg-white dark:bg-slate-950 px-3 py-1.5 rounded-md border shadow-sm">
+                    <div className="flex items-center space-x-2 bg-black px-3 py-1.5 border border-cyan-900/50 shadow-[0_0_10px_rgba(6,182,212,0.1)] rounded-none">
                       <Select value={uploadChannel} onValueChange={(val: 'main' | 'sub') => setUploadChannel(val)}>
-                        <SelectTrigger className="w-28 h-8 text-xs border-none bg-transparent shadow-none focus:ring-0 px-1">
+                        <SelectTrigger className="w-28 h-8 text-xs border-none bg-transparent shadow-none focus:ring-0 px-1 text-cyan-400 font-mono">
                           <SelectValue placeholder="Channel" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-black border-cyan-900 text-cyan-400 font-mono rounded-none">
                           {youtubeMainConnected && <SelectItem value="main">Main Channel</SelectItem>}
                           {youtubeSubConnected && <SelectItem value="sub">Sub Channel</SelectItem>}
                         </SelectContent>
                       </Select>
-                      <div className="w-px h-4 bg-slate-200 dark:bg-slate-800" />
+                      <div className="w-px h-4 bg-cyan-900/50" />
                       <Switch 
                         id={`yt-upload-${story.id}`} 
                         checked={autoUpload} 
                         onCheckedChange={setAutoUpload}
                         disabled={isGeneratingVideo || isUploadingYouTube}
-                        className="scale-75 data-[state=checked]:bg-red-500"
+                        className="scale-75 data-[state=checked]:bg-fuchsia-600 data-[state=unchecked]:bg-zinc-800 border-cyan-900"
                       />
-                      <Label htmlFor={`yt-upload-${story.id}`} className="text-xs font-medium cursor-pointer flex items-center gap-1 select-none pr-1">
+                      <Label htmlFor={`yt-upload-${story.id}`} className="text-xs font-mono text-cyan-400 cursor-pointer flex items-center gap-1 select-none pr-1 uppercase">
                         <Youtube className="w-3.5 h-3.5 text-red-500" />
-                        Auto-Upload
+                        AUTO-UPLINK
                       </Label>
                     </div>
                   </TooltipTrigger>
-                  <TooltipContent>
+                  <TooltipContent className="bg-black border border-cyan-500 text-cyan-400 font-mono text-xs rounded-none shadow-[0_0_10px_rgba(6,182,212,0.3)]">
                     <p>Automatically upload to YouTube when generation completes</p>
                   </TooltipContent>
                 </Tooltip>
@@ -541,14 +541,14 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
                         size="sm" 
                         onClick={handleGenerateVideo} 
                         disabled={isGeneratingVideo || isUploadingYouTube}
-                        className={`bg-purple-600 hover:bg-purple-700 text-white shadow-sm transition-colors ${!(isGeneratingVideo || isUploadingYouTube) ? 'animate-pulse hover:animate-none' : ''}`}
+                        className={`bg-fuchsia-600/20 hover:bg-fuchsia-600/40 text-fuchsia-400 border border-fuchsia-500 shadow-[0_0_10px_rgba(192,38,211,0.3)] hover:shadow-[0_0_15px_rgba(192,38,211,0.5)] transition-all font-mono uppercase rounded-none ${!(isGeneratingVideo || isUploadingYouTube) ? 'animate-pulse hover:animate-none' : ''}`}
                       >
                         {(isGeneratingVideo || isUploadingYouTube) ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <AlertCircle className="h-4 w-4 mr-2 hidden" />}
-                        {isUploadingYouTube ? 'Uploading to YouTube...' : 'Generate Video'}
+                        {isUploadingYouTube ? 'UPLOADING...' : 'GENERATE_VIDEO'}
                       </Button>
                     </div>
                   </TooltipTrigger>
-                  <TooltipContent>
+                  <TooltipContent className="bg-black border border-cyan-500 text-cyan-400 font-mono text-xs rounded-none shadow-[0_0_10px_rgba(6,182,212,0.3)]">
                     <p>Compile generated scenes into a final video</p>
                   </TooltipContent>
                 </Tooltip>
@@ -562,14 +562,14 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
                         size="sm" 
                         onClick={handleGenerateVideo} 
                         disabled={isGeneratingVideo || isUploadingYouTube}
-                    className={`bg-purple-600 hover:bg-purple-700 text-white shadow-sm transition-colors ${!(isGeneratingVideo || isUploadingYouTube) ? 'animate-pulse hover:animate-none' : ''}`}
+                        className={`bg-fuchsia-600/20 hover:bg-fuchsia-600/40 text-fuchsia-400 border border-fuchsia-500 shadow-[0_0_10px_rgba(192,38,211,0.3)] hover:shadow-[0_0_15px_rgba(192,38,211,0.5)] transition-all font-mono uppercase rounded-none ${!(isGeneratingVideo || isUploadingYouTube) ? 'animate-pulse hover:animate-none' : ''}`}
                       >
                         {(isGeneratingVideo || isUploadingYouTube) ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <AlertCircle className="h-4 w-4 mr-2 hidden" />}
-                        {isGeneratingVideo ? 'Recompiling...' : 'Regenerate Video'}
+                        {isGeneratingVideo ? 'RECOMPILING...' : 'REGEN_VIDEO'}
                       </Button>
                     </div>
                   </TooltipTrigger>
-                  <TooltipContent>
+                  <TooltipContent className="bg-black border border-cyan-500 text-cyan-400 font-mono text-xs rounded-none shadow-[0_0_10px_rgba(6,182,212,0.3)]">
                     <p>Recompile the video using the latest scenes and audio</p>
                   </TooltipContent>
                 </Tooltip>
@@ -583,14 +583,14 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
                         size="sm" 
                         onClick={handleContinueSeries} 
                         disabled={isContinuing || isGeneratingVideo}
-                        className={`bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:hover:bg-blue-900/50 dark:border-blue-900/50 shadow-sm transition-colors ${!(isContinuing || isGeneratingVideo) ? 'animate-pulse hover:animate-none' : ''}`}
+                        className={`bg-cyan-950/30 hover:bg-cyan-900/50 text-cyan-400 border border-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.2)] hover:shadow-[0_0_15px_rgba(6,182,212,0.4)] transition-all font-mono uppercase rounded-none ${!(isContinuing || isGeneratingVideo) ? 'animate-pulse hover:animate-none' : ''}`}
                       >
                         {isContinuing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <BookOpen className="h-4 w-4 mr-2" />}
-                        {isContinuing ? 'Continuing...' : 'Continue Series'}
+                        {isContinuing ? 'CONTINUING...' : 'CONTINUE_SERIES'}
                       </Button>
                     </div>
                   </TooltipTrigger>
-                  <TooltipContent>
+                  <TooltipContent className="bg-black border border-cyan-500 text-cyan-400 font-mono text-xs rounded-none shadow-[0_0_10px_rgba(6,182,212,0.3)]">
                     <p>Generate the next part of this story sequence</p>
                   </TooltipContent>
                 </Tooltip>
@@ -606,8 +606,8 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
                         disabled={isDownloading || downloadCompleted}
                         className={
                           downloadCompleted 
-                            ? "bg-green-100 dark:bg-green-900/80 text-green-800 dark:text-green-200 border-green-200 dark:border-green-800 shadow-sm transition-colors"
-                            : `bg-green-50 hover:bg-green-100 text-green-700 border-green-200 dark:bg-green-950/30 dark:hover:bg-green-900/50 dark:border-green-900/50 shadow-sm transition-colors ${!isDownloading ? 'animate-pulse hover:animate-none' : ''}`
+                            ? "bg-emerald-500/20 text-emerald-300 border border-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.5)] transition-all font-mono uppercase rounded-none"
+                            : `bg-emerald-950/30 hover:bg-emerald-900/50 text-emerald-400 border border-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.2)] hover:shadow-[0_0_15px_rgba(16,185,129,0.4)] transition-all font-mono uppercase rounded-none ${!isDownloading ? 'animate-pulse hover:animate-none' : ''}`
                         }
                       >
                         {downloadCompleted ? (
@@ -618,15 +618,15 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
                           <Download className="h-4 w-4 mr-2" />
                         )}
                         {downloadCompleted 
-                          ? 'Downloaded!' 
+                          ? 'DOWNLOADED!' 
                           : isDownloading 
-                            ? (downloadProgress > 0 ? `Downloading ${downloadProgress}%` : 'Starting...') 
-                            : 'Download Video'
+                            ? (downloadProgress > 0 ? `DL_${downloadProgress}%` : 'INIT_DL...') 
+                            : 'DOWNLOAD_VIDEO'
                         }
                       </Button>
                     </div>
                   </TooltipTrigger>
-                  <TooltipContent>
+                  <TooltipContent className="bg-black border border-cyan-500 text-cyan-400 font-mono text-xs rounded-none shadow-[0_0_10px_rgba(6,182,212,0.3)]">
                     <p>Save the final MP4 video to your device</p>
                   </TooltipContent>
                 </Tooltip>
@@ -634,30 +634,30 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
               {story.video_url && !story.youtube_url && (youtubeMainConnected || youtubeSubConnected) && (
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <div className="flex items-center gap-2 bg-white dark:bg-slate-950 p-1 rounded-md border shadow-sm">
+                    <div className="flex items-center gap-2 bg-black p-1 rounded-none border border-cyan-900/50 shadow-[0_0_10px_rgba(6,182,212,0.1)]">
                       <Select value={uploadChannel} onValueChange={(val: 'main' | 'sub') => setUploadChannel(val)}>
-                        <SelectTrigger className="w-28 h-7 text-xs border-none shadow-none focus:ring-0">
+                        <SelectTrigger className="w-28 h-7 text-xs border-none shadow-none focus:ring-0 text-cyan-400 font-mono">
                           <SelectValue placeholder="Channel" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-black border-cyan-900 text-cyan-400 font-mono rounded-none">
                           {youtubeMainConnected && <SelectItem value="main">Main Channel</SelectItem>}
                           {youtubeSubConnected && <SelectItem value="sub">Sub Channel</SelectItem>}
                         </SelectContent>
                       </Select>
-                      <div className="w-px h-4 bg-slate-200 dark:bg-slate-800" />
+                      <div className="w-px h-4 bg-cyan-900/50" />
                       <Button 
                         variant="ghost" 
                         size="sm" 
                         onClick={handleUploadYouTube} 
                         disabled={isUploadingYouTube}
-                        className={`h-7 text-xs text-red-700 hover:text-red-800 hover:bg-red-50 dark:hover:bg-red-950/50 transition-colors ${!isUploadingYouTube ? 'animate-pulse hover:animate-none' : ''}`}
+                        className={`h-7 text-xs bg-red-950/30 hover:bg-red-900/50 text-red-400 hover:text-red-300 border border-red-900/50 hover:border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.1)] transition-all font-mono uppercase rounded-none ${!isUploadingYouTube ? 'animate-pulse hover:animate-none' : ''}`}
                       >
                         {isUploadingYouTube ? <Loader2 className="h-3 w-3 animate-spin mr-1.5" /> : <Youtube className="h-3 w-3 mr-1.5" />}
-                        {isUploadingYouTube ? 'Uploading...' : 'Upload'}
+                        {isUploadingYouTube ? 'UPLOADING...' : 'UPLOAD_YT'}
                       </Button>
                     </div>
                   </TooltipTrigger>
-                  <TooltipContent>
+                  <TooltipContent className="bg-black border border-cyan-500 text-cyan-400 font-mono text-xs rounded-none shadow-[0_0_10px_rgba(6,182,212,0.3)]">
                     <p>Upload this video manually to your YouTube channel</p>
                   </TooltipContent>
                 </Tooltip>
@@ -671,14 +671,14 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
                         size="sm" 
                         onClick={handleRetryImages} 
                         disabled={isRetrying}
-                    className={`bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:hover:bg-amber-900/50 dark:border-amber-900/50 shadow-sm transition-colors ${!isRetrying ? 'animate-pulse hover:animate-none' : ''}`}
+                        className={`bg-amber-950/30 hover:bg-amber-900/50 text-amber-400 border border-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.2)] hover:shadow-[0_0_15px_rgba(245,158,11,0.4)] transition-all font-mono uppercase rounded-none ${!isRetrying ? 'animate-pulse hover:animate-none' : ''}`}
                       >
                         {isRetrying ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-                        {isRetrying ? 'Retrying...' : 'Retry Images'}
+                        {isRetrying ? 'RETRYING...' : 'RETRY_IMAGES'}
                       </Button>
                     </div>
                   </TooltipTrigger>
-                  <TooltipContent>
+                  <TooltipContent className="bg-black border border-cyan-500 text-cyan-400 font-mono text-xs rounded-none shadow-[0_0_10px_rgba(6,182,212,0.3)]">
                     <p>Retry generating any images that failed or got stuck</p>
                   </TooltipContent>
                 </Tooltip>
@@ -692,14 +692,14 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
                       size="sm" 
                       onClick={handleDelete} 
                       disabled={isDeleting}
-                      className="bg-red-50 hover:bg-red-100 text-red-700 border-red-200 dark:bg-red-950/30 dark:hover:bg-red-900/50 dark:border-red-900/50 shadow-sm transition-colors w-full"
+                      className="bg-red-950/30 hover:bg-red-900/50 text-red-500 border border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.2)] hover:shadow-[0_0_15px_rgba(239,68,68,0.4)] transition-all font-mono uppercase rounded-none w-full"
                     >
                       {isDeleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
-                      {story.status === 'failed' || story.status === 'generating' || story.scenes.some(s => s.image_status === 'failed' || s.image_status === 'generating') ? 'Cancel & Delete' : 'Delete'}
+                      {story.status === 'failed' || story.status === 'generating' || story.scenes.some(s => s.image_status === 'failed' || s.image_status === 'generating') ? 'CANCEL_&_DELETE' : 'SYS_DELETE'}
                     </Button>
                   </div>
                 </TooltipTrigger>
-                <TooltipContent>
+                <TooltipContent className="bg-black border border-cyan-500 text-cyan-400 font-mono text-xs rounded-none shadow-[0_0_10px_rgba(6,182,212,0.3)]">
                   <p>Permanently delete this story and all its assets</p>
                 </TooltipContent>
               </Tooltip>
@@ -709,46 +709,46 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
       </CardHeader>
       
       {isExpanded && (
-        <CardContent className="p-6 bg-slate-50/50 dark:bg-slate-900/20">
+        <CardContent className="p-6 bg-black/90">
           {story.video_url && (
-            <div className="mb-8 p-5 bg-slate-950 rounded-xl shadow-inner border border-slate-800">
+            <div className="mb-8 p-5 bg-black rounded-none border border-fuchsia-900/50 shadow-[0_0_20px_rgba(192,38,211,0.15)] relative overflow-hidden">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-4">
-                <h3 className="text-white text-lg font-semibold flex items-center gap-2">
-                  <span className="text-purple-400">🎬</span> Final Generated Video
+                <h3 className="text-fuchsia-400 text-lg font-mono uppercase tracking-widest flex items-center gap-2 drop-shadow-[0_0_5px_rgba(192,38,211,0.8)]">
+                  <span className="text-cyan-400">⚡</span> SYSTEM_VIDEO_READY
                 </h3>
                 {story.youtube_url && (
-                  <a href={story.youtube_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm font-medium text-red-400 hover:text-red-300 bg-red-950/30 px-3 py-1.5 rounded-lg border border-red-900/50 transition-colors">
+                  <a href={story.youtube_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-xs font-mono uppercase text-red-400 hover:text-red-300 bg-red-950/30 px-3 py-1.5 rounded-none border border-red-900/50 shadow-[0_0_10px_rgba(239,68,68,0.2)] transition-colors">
                     <Youtube className="w-4 h-4" />
-                    View on YouTube (Private)
+                    YT_UPLINK (SECURE)
                   </a>
                 )}
               </div>
               <video 
                 src={story.video_url} 
                 controls 
-                className="w-full aspect-video rounded-lg shadow-lg bg-black ring-1 ring-white/10"
+                className="w-full aspect-video rounded-none bg-black border border-cyan-900/50 shadow-[0_0_15px_rgba(6,182,212,0.2)]"
               />
             </div>
           )}
 
           {story.scenes.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 px-4 bg-white dark:bg-slate-950 rounded-xl border border-dashed border-slate-300 dark:border-slate-800">
-              <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
-              <p className="text-lg font-medium text-slate-700 dark:text-slate-300">Generating your storyboard</p>
-              <p className="text-sm text-muted-foreground mt-1 text-center max-w-sm">
-                The AI is crafting your scenes, writing the script, and preparing the image prompts. This usually takes a minute.
+            <div className="flex flex-col items-center justify-center py-16 px-4 bg-black rounded-none border border-dashed border-cyan-800 shadow-[0_0_15px_rgba(6,182,212,0.1)]">
+              <Loader2 className="h-8 w-8 animate-spin text-cyan-500 mb-4 drop-shadow-[0_0_8px_rgba(6,182,212,0.8)]" />
+              <p className="text-lg font-mono uppercase tracking-widest text-cyan-400 drop-shadow-[0_0_5px_rgba(6,182,212,0.8)]">INITIALIZING_NEURAL_NET</p>
+              <p className="text-sm font-mono text-cyan-700 mt-2 text-center max-w-sm">
+                SYNTHESIZING SCENES // WRITING SCRIPT // GENERATING PROMPTS. PLEASE WAIT...
               </p>
             </div>
           ) : (
             <div className={viewMode === 'card' ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" : "space-y-6"}>
               {story.scenes.map((scene) => (
-                <div key={scene.id} className={`flex ${viewMode === 'card' ? 'flex-col' : 'flex-col sm:flex-row'} bg-white dark:bg-slate-950 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all duration-200`}>
+                <div key={scene.id} className={`flex ${viewMode === 'card' ? 'flex-col' : 'flex-col sm:flex-row'} bg-black rounded-none overflow-hidden border border-cyan-900/40 hover:border-cyan-500/60 shadow-[0_0_10px_rgba(6,182,212,0.05)] hover:shadow-[0_0_15px_rgba(6,182,212,0.2)] transition-all duration-300 group`}>
                   
                   {/* Image Section */}
-                  <div className={`relative ${viewMode === 'card' ? 'w-full aspect-video border-b' : 'w-full sm:w-64 md:w-80 shrink-0 border-b sm:border-b-0 sm:border-r'} border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 flex items-center justify-center overflow-hidden group`}>
+                  <div className={`relative ${viewMode === 'card' ? 'w-full aspect-video border-b' : 'w-full sm:w-64 md:w-80 shrink-0 border-b sm:border-b-0 sm:border-r'} border-cyan-900/50 bg-zinc-950 flex items-center justify-center overflow-hidden group`}>
                     <div className="absolute top-3 left-3 z-10">
-                      <Badge variant="secondary" className="bg-white/90 dark:bg-slate-950/90 text-slate-900 dark:text-slate-100 backdrop-blur-md shadow-sm font-semibold border-none">
-                        Scene {scene.scene_number}
+                      <Badge variant="secondary" className="bg-black/90 text-cyan-400 border border-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.5)] font-mono rounded-none uppercase tracking-wider backdrop-blur-md">
+                        SYS.SCENE_{scene.scene_number.toString().padStart(2, '0')}
                       </Badge>
                     </div>
                     
@@ -757,39 +757,39 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
                         src={scene.image_url}
                         alt={`Scene ${scene.scene_number}`}
                         fill
-                        className="object-cover transition-transform duration-500 group-hover:scale-105"
+                        className="object-cover transition-transform duration-700 group-hover:scale-105 opacity-90 group-hover:opacity-100"
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                       />
                     ) : scene.image_status === 'generating' ? (
-                      <div className="flex flex-col items-center justify-center p-6 text-center w-full h-full min-h-[200px]">
-                        <Loader2 className="h-8 w-8 animate-spin mb-3 text-primary/70" />
-                        <p className="text-xs font-medium text-slate-600 dark:text-slate-400">Painting image...</p>
+                      <div className="flex flex-col items-center justify-center p-6 text-center w-full h-full min-h-[200px] bg-fuchsia-950/20">
+                        <Loader2 className="h-8 w-8 animate-spin mb-3 text-fuchsia-500 drop-shadow-[0_0_8px_rgba(192,38,211,0.8)]" />
+                        <p className="text-xs font-mono uppercase tracking-widest text-fuchsia-400">RENDERING...</p>
                       </div>
                     ) : scene.image_status === 'failed' ? (
-                      <div className="flex flex-col items-center justify-center p-6 text-center w-full h-full min-h-[200px] bg-red-50/50 dark:bg-red-950/20">
-                        <AlertCircle className="h-8 w-8 mb-3 text-red-500/70" />
-                        <p className="text-xs font-medium text-red-600 dark:text-red-400">Generation failed</p>
+                      <div className="flex flex-col items-center justify-center p-6 text-center w-full h-full min-h-[200px] bg-red-950/20">
+                        <AlertCircle className="h-8 w-8 mb-3 text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
+                        <p className="text-xs font-mono uppercase tracking-widest text-red-400">ERR: GENERATION_FAILED</p>
                       </div>
                     ) : scene.image_status === 'skipped' ? (
-                      <div className="flex flex-col items-center justify-center p-6 text-center w-full h-full min-h-[200px] bg-slate-100/50 dark:bg-slate-800/50">
-                        <div className="w-12 h-12 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center mb-3">
-                          <span className="text-xl opacity-50 grayscale">⏭️</span>
+                      <div className="flex flex-col items-center justify-center p-6 text-center w-full h-full min-h-[200px] bg-zinc-900/50">
+                        <div className="w-12 h-12 border border-zinc-700 bg-black flex items-center justify-center mb-3">
+                          <span className="text-xl text-zinc-600">⏭</span>
                         </div>
-                        <p className="text-xs font-medium text-slate-500 dark:text-slate-500">Skipped</p>
+                        <p className="text-xs font-mono uppercase tracking-widest text-zinc-500">BYPASSED</p>
                       </div>
                     ) : (
                       <div className="flex flex-col items-center justify-center p-6 text-center w-full h-full min-h-[200px]">
-                        <div className="w-8 h-8 rounded-full border-2 border-slate-300 dark:border-slate-700 border-t-transparent animate-spin mb-3"></div>
-                        <p className="text-xs font-medium text-slate-500">Pending in queue...</p>
+                        <div className="w-8 h-8 rounded-full border-2 border-cyan-900 border-t-cyan-400 animate-spin mb-3 shadow-[0_0_10px_rgba(6,182,212,0.5)]"></div>
+                        <p className="text-xs font-mono uppercase tracking-widest text-cyan-600">AWAITING_RESOURCES</p>
                       </div>
                     )}
                   </div>
 
                   {/* Script Section */}
-                  <div className={`flex flex-col flex-1 p-5 ${viewMode === 'card' ? 'h-48' : ''}`}>
-                    <div className={`flex-1 overflow-y-auto pr-2 ${viewMode === 'card' ? 'text-sm' : 'text-base sm:text-sm md:text-base'} text-slate-700 dark:text-slate-300 leading-relaxed space-y-3`}>
+                  <div className={`flex flex-col flex-1 p-5 ${viewMode === 'card' ? 'h-48' : ''} bg-black/50`}>
+                    <div className={`flex-1 overflow-y-auto pr-2 ${viewMode === 'card' ? 'text-sm' : 'text-base sm:text-sm md:text-base'} text-cyan-100/70 font-mono leading-relaxed space-y-3 custom-scrollbar`}>
                       {scene.script.split('\n').map((paragraph, idx) => (
-                        paragraph.trim() ? <p key={idx}>{paragraph}</p> : null
+                        paragraph.trim() ? <p key={idx} className="border-l-2 border-cyan-900/50 pl-3">{paragraph}</p> : null
                       ))}
                     </div>
                   </div>
