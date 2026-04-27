@@ -138,8 +138,8 @@ export default function DashboardPage() {
 
     if (!storyIdea.trim()) {
       toast({
-        title: 'Error',
-        description: 'Please enter a story idea',
+        title: 'ERR.MISSING_INPUT',
+        description: 'PLEASE ENTER A STORY DIRECTIVE.',
         variant: 'destructive',
       });
       return;
@@ -175,8 +175,8 @@ export default function DashboardPage() {
       }
 
       toast({
-        title: 'Success',
-        description: 'Story text generated! Now generating images...',
+        title: 'SYS.SUCCESS',
+        description: 'TEXT GENERATED. INITIALIZING NEURAL RENDERER...',
       });
 
       setStoryIdea('');
@@ -186,8 +186,8 @@ export default function DashboardPage() {
       triggerImageGeneration(story.id);
     } catch (error: any) {
       toast({
-        title: 'Error',
-        description: error.message || 'Failed to generate story',
+        title: 'ERR.GEN_FAILED',
+        description: error.message || 'FAILED TO GENERATE STORY.',
         variant: 'destructive',
       });
     } finally {
@@ -200,8 +200,8 @@ export default function DashboardPage() {
 
     if (!youtubeUrl.trim()) {
       toast({
-        title: 'Error',
-        description: 'Please enter a YouTube URL',
+        title: 'ERR.MISSING_INPUT',
+        description: 'PLEASE ENTER A YOUTUBE URL.',
         variant: 'destructive',
       });
       return;
@@ -237,8 +237,8 @@ export default function DashboardPage() {
       }
 
       toast({
-        title: 'Success',
-        description: 'Story text generated from YouTube! Now generating images...',
+        title: 'SYS.SUCCESS',
+        description: 'TEXT EXTRACTED. INITIALIZING NEURAL RENDERER...',
       });
 
       setYoutubeUrl('');
@@ -248,8 +248,8 @@ export default function DashboardPage() {
       triggerImageGeneration(story.id);
     } catch (error: any) {
       toast({
-        title: 'Error',
-        description: error.message || 'Failed to generate story',
+        title: 'ERR.GEN_FAILED',
+        description: error.message || 'FAILED TO GENERATE STORY.',
         variant: 'destructive',
       });
     } finally {
@@ -258,42 +258,42 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
-      <header className="border-b bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+    <div className="min-h-screen bg-transparent">
+      <header className="border-b border-cyan-900/50 bg-black/60 backdrop-blur-md shadow-[0_0_15px_rgba(6,182,212,0.15)] relative z-10">
+        <div className="container mx-auto px-4 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <Sparkles className="h-6 w-6 text-primary" />
+            <div className="p-2 border border-cyan-500 bg-cyan-950/30 shadow-[0_0_10px_rgba(6,182,212,0.5)] rounded-none">
+              <Sparkles className="h-6 w-6 text-cyan-400" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold">AI Story Generator</h1>
-              <p className="text-sm text-muted-foreground">Create amazing stories with AI</p>
+              <h1 className="text-2xl font-mono font-bold tracking-widest text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.8)] uppercase">AI Story Generator</h1>
+              <p className="text-xs font-mono text-cyan-700 tracking-widest uppercase">Create amazing stories with AI</p>
             </div>
           </div>
           <div className="flex flex-col sm:flex-row items-center gap-4">
             <div className="flex flex-col sm:flex-row gap-2">
               {!youtubeMainConnected ? (
-                <Button variant="outline" className="border-red-500 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/50" onClick={() => window.location.href = '/api/youtube/auth?channel=main'}>
-                  Connect Main YouTube
+                <Button variant="outline" className="h-9 text-xs bg-red-950/30 hover:bg-red-900/50 text-red-400 hover:text-red-300 border border-red-900/50 hover:border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.1)] transition-all font-mono uppercase rounded-none animate-pulse hover:animate-none" onClick={() => window.location.href = '/api/youtube/auth?channel=main'}>
+                  CONNECT MAIN YT
                 </Button>
               ) : (
-                <div className="text-sm font-medium text-red-500 bg-red-50 dark:bg-red-950/30 px-3 py-1.5 rounded-md border border-red-200 dark:border-red-900/50 flex items-center h-10">
-                  Main YouTube Connected
+                <div className="text-xs font-mono tracking-widest text-emerald-400 bg-emerald-950/30 px-3 py-1.5 rounded-none border border-emerald-900/50 shadow-[0_0_10px_rgba(16,185,129,0.2)] uppercase flex items-center h-9">
+                  MAIN YT LINKED
                 </div>
               )}
               {!youtubeSubConnected ? (
-                <Button variant="outline" className="border-red-500 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/50" onClick={() => window.location.href = '/api/youtube/auth?channel=sub'}>
-                  Connect Sub YouTube
+                <Button variant="outline" className="h-9 text-xs bg-red-950/30 hover:bg-red-900/50 text-red-400 hover:text-red-300 border border-red-900/50 hover:border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.1)] transition-all font-mono uppercase rounded-none animate-pulse hover:animate-none" onClick={() => window.location.href = '/api/youtube/auth?channel=sub'}>
+                  CONNECT SUB YT
                 </Button>
               ) : (
-                <div className="text-sm font-medium text-red-500 bg-red-50 dark:bg-red-950/30 px-3 py-1.5 rounded-md border border-red-200 dark:border-red-900/50 flex items-center h-10">
-                  Sub YouTube Connected
+                <div className="text-xs font-mono tracking-widest text-emerald-400 bg-emerald-950/30 px-3 py-1.5 rounded-none border border-emerald-900/50 shadow-[0_0_10px_rgba(16,185,129,0.2)] uppercase flex items-center h-9">
+                  SUB YT LINKED
                 </div>
               )}
             </div>
-            <Button variant="outline" onClick={handleLogout}>
+            <Button variant="outline" onClick={handleLogout} className="h-9 text-xs bg-black text-cyan-600 border border-cyan-900 hover:text-cyan-400 hover:bg-cyan-950 rounded-none font-mono uppercase">
               <LogOut className="mr-2 h-4 w-4" />
-              Logout
+              SYS_LOGOUT
             </Button>
           </div>
         </div>
@@ -301,75 +301,75 @@ export default function DashboardPage() {
 
       <main className="container mx-auto px-4 py-8 max-w-6xl">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <Card className="shadow-lg h-full flex flex-col">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+          <Card className="bg-black border border-cyan-900/50 shadow-[0_0_20px_rgba(6,182,212,0.1)] hover:shadow-[0_0_30px_rgba(6,182,212,0.2)] transition-all duration-300 rounded-sm h-full flex flex-col">
+            <CardHeader className="border-b border-cyan-900/50 bg-gradient-to-r from-black via-zinc-950 to-black">
+              <CardTitle className="text-lg flex items-center gap-2 text-cyan-400 font-mono uppercase tracking-wider drop-shadow-[0_0_8px_rgba(6,182,212,0.5)]">
                 <BookOpen className="h-5 w-5" />
-                Generate New Story
+                INITIALIZE_NEW_SEQUENCE
               </CardTitle>
-              <CardDescription>
-                Enter your story idea and let AI create a detailed script with stunning images
+              <CardDescription className="text-xs font-mono text-cyan-700 uppercase tracking-widest">
+                INPUT STORY PARAMETERS FOR NEURAL SYNTHESIS
               </CardDescription>
             </CardHeader>
-            <CardContent className="flex-1 flex flex-col">
+            <CardContent className="flex-1 flex flex-col pt-6 bg-black/90">
               <form onSubmit={handleGenerateStory} className="space-y-4 flex-1 flex flex-col">
                 <Textarea
-                  placeholder="Enter your story idea here... (e.g., 'A brave knight embarks on a quest to find a magical crystal')"
+                  placeholder="INPUT DIRECTIVE... (e.g. 'A CYBERPUNK HACKER INFILTRATES THE MAINFRAME')"
                   value={storyIdea}
                   onChange={(e) => setStoryIdea(e.target.value)}
                   disabled={loading}
                   rows={4}
-                  className="resize-none flex-1"
+                  className="resize-none flex-1 bg-black/80 border-cyan-900/50 text-cyan-100/70 font-mono text-sm focus-visible:ring-cyan-500/50 focus-visible:border-cyan-500 rounded-none custom-scrollbar p-3"
                 />
                 <div className="flex flex-col xl:flex-row gap-4 items-center justify-between mt-auto">
                   <div className="w-full xl:w-1/2">
                     <Select value={storyLength} onValueChange={setStoryLength} disabled={loading}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select story length" />
+                      <SelectTrigger className="border-cyan-900/50 bg-black text-cyan-400 font-mono rounded-none focus:ring-cyan-500/50 uppercase">
+                        <SelectValue placeholder="SELECT SEQUENCE LENGTH" />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="5">Short (5 Scenes)</SelectItem>
-                        <SelectItem value="40">Medium (40 Scenes)</SelectItem>
-                        <SelectItem value="120">Long (120 Scenes)</SelectItem>
+                      <SelectContent className="bg-black border-cyan-900 text-cyan-400 font-mono rounded-none uppercase">
+                        <SelectItem value="5">SHORT [05 SCENES]</SelectItem>
+                        <SelectItem value="40">MEDIUM [40 SCENES]</SelectItem>
+                        <SelectItem value="120">LONG [120 SCENES]</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                  <Button type="submit" disabled={loading} className="w-full xl:w-auto">
+                  <Button type="submit" disabled={loading} className="w-full xl:w-auto bg-fuchsia-600/20 hover:bg-fuchsia-600/40 text-fuchsia-400 border border-fuchsia-500 shadow-[0_0_10px_rgba(192,38,211,0.3)] hover:shadow-[0_0_15px_rgba(192,38,211,0.5)] transition-all font-mono uppercase rounded-none">
                     {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {loading ? 'Generating...' : 'Generate Story'}
+                    {loading ? 'SYNTHESIZING...' : 'GENERATE_STORY'}
                   </Button>
                 </div>
               </form>
             </CardContent>
           </Card>
 
-          <Card className="shadow-lg h-full flex flex-col">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Youtube className="h-5 w-5 text-red-500" />
-                Generate from YouTube Video
+          <Card className="bg-black border border-cyan-900/50 shadow-[0_0_20px_rgba(6,182,212,0.1)] hover:shadow-[0_0_30px_rgba(6,182,212,0.2)] transition-all duration-300 rounded-sm h-full flex flex-col">
+            <CardHeader className="border-b border-cyan-900/50 bg-gradient-to-r from-black via-zinc-950 to-black">
+              <CardTitle className="text-lg flex items-center gap-2 text-cyan-400 font-mono uppercase tracking-wider drop-shadow-[0_0_8px_rgba(6,182,212,0.5)]">
+                <Youtube className="h-5 w-5 text-red-500 drop-shadow-[0_0_5px_rgba(239,68,68,0.8)]" />
+                EXTRACT_FROM_YOUTUBE
               </CardTitle>
-              <CardDescription>
-                Paste a YouTube URL to automatically extract the narration and turn it into a storyboard
+              <CardDescription className="text-xs font-mono text-cyan-700 uppercase tracking-widest">
+                PROVIDE YT_URL TO EXTRACT NARRATION DATA
               </CardDescription>
             </CardHeader>
-            <CardContent className="flex-1 flex flex-col">
+            <CardContent className="flex-1 flex flex-col pt-6 bg-black/90">
               <form onSubmit={handleGenerateFromYoutube} className="space-y-4 flex-1 flex flex-col justify-between">
-                <div className="space-y-4 flex-1 flex flex-col">
+                <div className="flex-1 flex flex-col">
                   <Input
-                    placeholder="https://www.youtube.com/watch?v=..."
+                    placeholder="HTTPS://WWW.YOUTUBE.COM/WATCH?V=..."
                     value={youtubeUrl}
                     onChange={(e) => setYoutubeUrl(e.target.value)}
                     disabled={loading}
-                    className="w-full"
+                    className="w-full bg-black/80 border-cyan-900/50 text-cyan-100/70 font-mono text-sm focus-visible:ring-cyan-500/50 focus-visible:border-cyan-500 rounded-none h-10"
                   />
-                  <div className="text-sm text-muted-foreground p-4 bg-slate-50 dark:bg-slate-900 rounded-lg border border-dashed flex-1 flex items-center">
-                    <p><strong>Pro tip:</strong> Ensure the video has closed captions enabled. AI will determine the optimal length automatically.</p>
+                  <div className="text-xs font-mono text-cyan-600 tracking-wider uppercase p-4 bg-zinc-950/50 rounded-none border border-dashed border-cyan-900/50 flex-1 flex items-center mt-4">
+                    <p><strong className="text-cyan-400">SYS_TIP:</strong> ENSURE VIDEO HAS CLOSED CAPTIONS ENABLED. NEURAL NET WILL DETERMINE OPTIMAL SEQUENCE LENGTH.</p>
                   </div>
                 </div>
-                <Button type="submit" disabled={loading} className="w-full bg-red-500 hover:bg-red-600 text-white mt-auto">
+                <Button type="submit" disabled={loading} className="w-full bg-red-950/30 hover:bg-red-900/50 text-red-500 hover:text-red-400 border border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.2)] hover:shadow-[0_0_15px_rgba(239,68,68,0.4)] transition-all font-mono uppercase rounded-none mt-4">
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {loading ? 'Extracting...' : 'Extract & Generate'}
+                  {loading ? 'EXTRACTING...' : 'EXTRACT_&_GENERATE'}
                 </Button>
               </form>
             </CardContent>
@@ -378,28 +378,28 @@ export default function DashboardPage() {
 
         <div className="space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <h2 className="text-2xl font-bold flex items-center gap-2">
+            <h2 className="text-2xl font-mono font-bold tracking-widest text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.8)] uppercase flex items-center gap-2">
               <ImageIcon className="h-6 w-6" />
-              Your Stories
+              DATA_ARCHIVES
             </h2>
-            <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-900 p-1 rounded-lg border w-max">
+            <div className="flex items-center gap-2 bg-black p-1 rounded-none border border-cyan-900/50 shadow-[0_0_10px_rgba(6,182,212,0.1)] w-max">
               <Button 
-                variant={viewMode === 'card' ? 'secondary' : 'ghost'} 
+                variant="outline" 
                 size="sm" 
                 onClick={() => setViewMode('card')}
-                className="h-8 px-3"
+                className={`h-8 px-3 rounded-none font-mono uppercase text-xs transition-all ${viewMode === 'card' ? 'bg-cyan-950/50 text-cyan-300 border-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.3)]' : 'bg-transparent text-cyan-700 hover:text-cyan-400 hover:bg-cyan-950/30 border-transparent'}`}
               >
                 <LayoutGrid className="w-4 h-4 mr-2" />
-                Cards
+                GRID_VIEW
               </Button>
               <Button 
-                variant={viewMode === 'list' ? 'secondary' : 'ghost'} 
+                variant="outline" 
                 size="sm" 
                 onClick={() => setViewMode('list')}
-                className="h-8 px-3"
+                className={`h-8 px-3 rounded-none font-mono uppercase text-xs transition-all ${viewMode === 'list' ? 'bg-cyan-950/50 text-cyan-300 border-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.3)]' : 'bg-transparent text-cyan-700 hover:text-cyan-400 hover:bg-cyan-950/30 border-transparent'}`}
               >
                 <LayoutList className="w-4 h-4 mr-2" />
-                List
+                LIST_VIEW
               </Button>
             </div>
           </div>
@@ -407,30 +407,30 @@ export default function DashboardPage() {
           {loadingStories ? (
             <div className="space-y-6">
               {[1, 2, 3].map((i) => (
-                <Card key={i} className="shadow-lg overflow-hidden opacity-70">
-                  <CardHeader className="border-b bg-slate-50/50 dark:bg-slate-900/50">
+                <Card key={i} className="bg-black border border-cyan-900/50 overflow-hidden opacity-70 rounded-sm">
+                  <CardHeader className="border-b border-cyan-900/50 bg-zinc-950">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                       <div className="space-y-3 flex-1 w-full">
-                        <div className="h-7 bg-slate-200 dark:bg-slate-800 rounded-md w-3/4 sm:w-1/3 animate-pulse" />
+                        <div className="h-7 bg-cyan-900/40 rounded-none w-3/4 sm:w-1/3 animate-pulse border border-cyan-900/20" />
                         <div className="flex gap-2">
-                          <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded-md w-16 animate-pulse" />
-                          <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded-md w-16 animate-pulse hidden sm:block" />
-                          <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded-md w-20 animate-pulse hidden sm:block" />
+                          <div className="h-4 bg-cyan-900/40 rounded-none w-16 animate-pulse border border-cyan-900/20" />
+                          <div className="h-4 bg-cyan-900/40 rounded-none w-16 animate-pulse hidden sm:block border border-cyan-900/20" />
+                          <div className="h-4 bg-cyan-900/40 rounded-none w-20 animate-pulse hidden sm:block border border-cyan-900/20" />
                         </div>
                       </div>
-                      <div className="h-6 w-24 bg-slate-200 dark:bg-slate-800 rounded-full animate-pulse shrink-0" />
+                      <div className="h-6 w-24 bg-cyan-900/40 rounded-none animate-pulse shrink-0 border border-cyan-900/20" />
                     </div>
                   </CardHeader>
                 </Card>
               ))}
             </div>
           ) : stories.length === 0 ? (
-            <Card className="py-12">
-              <CardContent className="text-center">
-                <Sparkles className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                <p className="text-lg text-muted-foreground">No stories yet</p>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Create your first AI-generated story above
+            <Card className="bg-black border border-dashed border-cyan-800 shadow-[0_0_15px_rgba(6,182,212,0.1)] rounded-none py-12">
+              <CardContent className="text-center pt-6">
+                <Sparkles className="h-12 w-12 mx-auto mb-4 text-cyan-600 drop-shadow-[0_0_8px_rgba(6,182,212,0.5)]" />
+                <p className="text-lg font-mono uppercase tracking-widest text-cyan-500 drop-shadow-[0_0_5px_rgba(6,182,212,0.8)]">NO_DATA_ARCHIVED</p>
+                <p className="text-xs font-mono text-cyan-700 mt-2 tracking-widest uppercase">
+                  INITIALIZE A NEW SEQUENCE TO BEGIN
                 </p>
               </CardContent>
             </Card>

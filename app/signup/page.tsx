@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Loader as Loader2, Sparkles } from 'lucide-react';
+import { Loader as Loader2, Terminal } from 'lucide-react';
 
 export default function SignUpPage() {
   const [email, setEmail] = useState('');
@@ -25,8 +25,8 @@ export default function SignUpPage() {
 
     if (password !== confirmPassword) {
       toast({
-        title: 'Error',
-        description: 'Passwords do not match',
+        title: 'ERR.PASSWORD_MISMATCH',
+        description: 'SECURITY KEYS DO NOT MATCH.',
         variant: 'destructive',
       });
       return;
@@ -34,8 +34,8 @@ export default function SignUpPage() {
 
     if (password.length < 6) {
       toast({
-        title: 'Error',
-        description: 'Password must be at least 6 characters',
+        title: 'ERR.WEAK_PASSWORD',
+        description: 'SECURITY KEY MUST BE AT LEAST 6 CHARACTERS.',
         variant: 'destructive',
       });
       return;
@@ -50,50 +50,51 @@ export default function SignUpPage() {
 
     if (error) {
       toast({
-        title: 'Error',
-        description: error.message,
+        title: 'ERR.SIGNUP_FAILED',
+        description: error.message.toUpperCase(),
         variant: 'destructive',
       });
       setLoading(false);
     } else {
       toast({
-        title: 'Success',
-        description: 'Account created successfully. You can now sign in.',
+        title: 'SYS.SIGNUP_SUCCESS',
+        description: 'ENTITY REGISTERED SUCCESSFULLY. YOU MAY NOW AUTHENTICATE.',
       });
       router.push('/dashboard');
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-4">
-      <Card className="w-full max-w-md shadow-xl">
-        <CardHeader className="space-y-1">
+    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center bg-transparent p-4 relative z-10">
+      <Card className="w-full max-w-md bg-black border border-cyan-900/50 shadow-[0_0_30px_rgba(6,182,212,0.15)] rounded-sm overflow-hidden">
+        <CardHeader className="space-y-1 border-b border-cyan-900/50 bg-gradient-to-r from-black via-zinc-950 to-black pb-6">
           <div className="flex items-center justify-center mb-4">
-            <div className="p-3 bg-primary/10 rounded-full">
-              <Sparkles className="h-8 w-8 text-primary" />
+            <div className="p-3 border border-cyan-500 bg-cyan-950/30 shadow-[0_0_15px_rgba(6,182,212,0.5)] rounded-none">
+              <Terminal className="h-8 w-8 text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.8)]" />
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold text-center">Create Account</CardTitle>
-          <CardDescription className="text-center">
-            Start generating AI-powered stories and images
+          <CardTitle className="text-2xl font-mono font-bold text-center tracking-widest text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.5)] uppercase">SYS_AUTH // REGISTER</CardTitle>
+          <CardDescription className="text-center font-mono text-xs text-cyan-700 tracking-widest uppercase">
+            INITIALIZE NEW OPERATIVE ENTITY
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSignUp}>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 pt-6 bg-black/90">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="font-mono text-cyan-400 text-xs uppercase tracking-wider">USER_IDENTIFIER (EMAIL)</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="you@example.com"
+                placeholder="OPERATIVE@MAINFRAME.NET"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={loading}
+                className="bg-black/80 border-cyan-900/50 text-cyan-100/70 font-mono text-sm focus-visible:ring-cyan-500/50 focus-visible:border-cyan-500 rounded-none h-10"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="font-mono text-cyan-400 text-xs uppercase tracking-wider">SECURITY_KEY (PASSWORD)</Label>
               <Input
                 id="password"
                 type="password"
@@ -102,10 +103,11 @@ export default function SignUpPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 disabled={loading}
+                className="bg-black/80 border-cyan-900/50 text-cyan-100/70 font-mono text-sm focus-visible:ring-cyan-500/50 focus-visible:border-cyan-500 rounded-none h-10"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Label htmlFor="confirmPassword" className="font-mono text-cyan-400 text-xs uppercase tracking-wider">CONFIRM_SECURITY_KEY</Label>
               <Input
                 id="confirmPassword"
                 type="password"
@@ -114,18 +116,19 @@ export default function SignUpPage() {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
                 disabled={loading}
+                className="bg-black/80 border-cyan-900/50 text-cyan-100/70 font-mono text-sm focus-visible:ring-cyan-500/50 focus-visible:border-cyan-500 rounded-none h-10"
               />
             </div>
           </CardContent>
-          <CardFooter className="flex flex-col space-y-4">
-            <Button type="submit" className="w-full" disabled={loading}>
+          <CardFooter className="flex flex-col space-y-4 bg-black/90 pb-6 border-t border-cyan-900/30 pt-6">
+            <Button type="submit" className="w-full bg-fuchsia-600/20 hover:bg-fuchsia-600/40 text-fuchsia-400 border border-fuchsia-500 shadow-[0_0_10px_rgba(192,38,211,0.3)] hover:shadow-[0_0_15px_rgba(192,38,211,0.5)] transition-all font-mono uppercase rounded-none" disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Create Account
+              {loading ? 'REGISTERING...' : 'REGISTER_ENTITY'}
             </Button>
-            <p className="text-sm text-center text-muted-foreground">
-              Already have an account?{' '}
-              <Link href="/login" className="text-primary hover:underline font-medium">
-                Sign in
+            <p className="text-xs text-center font-mono text-cyan-700 uppercase tracking-widest">
+              ALREADY REGISTERED?{' '}
+              <Link href="/login" className="text-cyan-400 hover:text-cyan-300 hover:drop-shadow-[0_0_5px_rgba(6,182,212,0.8)] transition-all font-bold">
+                AUTHENTICATE_HERE
               </Link>
             </p>
           </CardFooter>
