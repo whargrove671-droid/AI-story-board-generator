@@ -14,6 +14,15 @@ import { StoryCard } from '@/components/story-card';
 import { BackupButton } from '@/components/backup-button';
 import { RestoreButton } from '@/components/restore-button';
 import ErrorBoundary from '@/components/error-boundary';
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 type Scene = {
   id: string;
@@ -44,6 +53,8 @@ export default function DashboardPage() {
   const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
   const [youtubeMainConnected, setYoutubeMainConnected] = useState(false);
   const [youtubeSubConnected, setYoutubeSubConnected] = useState(false);
+  const [storyToDelete, setStoryToDelete] = useState<Story | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
   const supabase = createClient();
@@ -255,6 +266,30 @@ export default function DashboardPage() {
     }
   };
 
+  const confirmDelete = async () => {
+    if (!storyToDelete) return;
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase.from('stories').delete().eq('id', storyToDelete.id);
+      if (error) throw error;
+      
+      toast({
+        title: 'SYS.PURGE_COMPLETE',
+        description: 'STORY DATA PERMANENTLY DELETED.',
+      });
+      loadStories();
+    } catch (error: any) {
+      toast({
+        title: 'ERR.PURGE_FAILED',
+        description: error.message || 'FAILED TO DELETE STORY.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsDeleting(false);
+      setStoryToDelete(null);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-transparent">
       <header className="border-b border-cyan-900/50 bg-black/60 backdrop-blur-md shadow-[0_0_15px_rgba(6,182,212,0.15)] relative z-10">
@@ -443,13 +478,35 @@ export default function DashboardPage() {
               <div className="space-y-6">
                 {stories.map((story) => (
                   <ErrorBoundary key={story.id}>
-                    <StoryCard story={story} onRefresh={loadStories} viewMode={viewMode} />
+                    <StoryCard story={story} onRefresh={loadStories} viewMode={viewMode} onDelete={setStoryToDelete} />
                   </ErrorBoundary>
                 ))}
               </div>
             )}
           </div>
         </ErrorBoundary>
+
+        <AlertDialog open={!!storyToDelete} onOpenChange={(open) => !open && !isDeleting && setStoryToDelete(null)}>
+          <AlertDialogContent className="bg-black border border-red-900/50 shadow-[0_0_30px_rgba(239,68,68,0.15)] rounded-none">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-red-400 font-mono uppercase tracking-widest drop-shadow-[0_0_5px_rgba(239,68,68,0.8)]">
+                SYS.WARN: DATA_PURGE_REQUESTED
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-red-100/70 font-mono text-sm tracking-wider">
+                Are you sure you want to permanently delete the story <span className="text-cyan-400 uppercase">"{storyToDelete?.title}"</span>? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isDeleting} className="bg-transparent border border-cyan-900/50 text-cyan-400 hover:bg-cyan-950/30 hover:text-cyan-300 rounded-none font-mono uppercase text-xs">
+                Cancel
+              </AlertDialogCancel>
+              <Button disabled={isDeleting} onClick={confirmDelete} className="bg-red-950/30 hover:bg-red-900/50 text-red-500 hover:text-red-400 border border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.2)] rounded-none font-mono uppercase text-xs">
+                {isDeleting ? <Loader2 className="mr-2 h-3 w-3 animate-spin" /> : null}
+                {isDeleting ? 'PURGING...' : 'CONFIRM_PURGE'}
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </main>
     </div>
   );

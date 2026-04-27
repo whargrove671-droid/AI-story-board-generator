@@ -38,10 +38,10 @@ interface StoryCardProps {
   story: Story;
   onRefresh: () => void;
   viewMode?: 'card' | 'list';
+  onDelete?: (story: Story) => void;
 }
 
-export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProps) {
-  const [isDeleting, setIsDeleting] = useState(false);
+export function StoryCard({ story, onRefresh, viewMode = 'card', onDelete }: StoryCardProps) {
   const [isRetrying, setIsRetrying] = useState(false);
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
   const [isUploadingYouTube, setIsUploadingYouTube] = useState(false);
@@ -559,21 +559,6 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
     }
   };
 
-  const handleDelete = async () => {
-    try {
-      setIsDeleting(true);
-      const { error } = await supabase.from('stories').delete().eq('id', story.id);
-      if (error) throw error;
-      
-      sysToast('SYS.PURGE_COMPLETE', 'STORY DATA PERMANENTLY DELETED.');
-      onRefresh();
-      playSuccessSound();
-    } catch (error: any) {
-      errToast('ERR.PURGE_FAILED', error.message || 'FAILED TO DELETE STORY.');
-      setIsDeleting(false);
-    }
-  };
-
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'completed':
@@ -854,11 +839,10 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      onClick={handleDelete} 
-                      disabled={isDeleting}
+                      onClick={() => onDelete?.(story)} 
                       className={`bg-red-950/30 hover:bg-red-900/50 text-red-500 border border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.2)] hover:shadow-[0_0_15px_rgba(239,68,68,0.4)] transition-all font-mono uppercase rounded-none w-full ${story.status === 'failed' || story.scenes.some(s => s.image_status === 'failed') ? 'animate-pulse hover:animate-none' : ''}`}
                     >
-                      {isDeleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
+                      <Trash2 className="h-4 w-4 mr-2" />
                       {story.status === 'failed' || story.status === 'generating' || story.scenes.some(s => s.image_status === 'failed' || s.image_status === 'generating') ? 'CANCEL_&_DELETE' : 'SYS_DELETE'}
                     </Button>
                   </div>
