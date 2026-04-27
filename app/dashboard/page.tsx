@@ -412,6 +412,7 @@ export default function DashboardPage() {
               </Button>
             </div>
           </div>
+        </div>
 
           {loadingStories ? (
             <div className="space-y-6">
