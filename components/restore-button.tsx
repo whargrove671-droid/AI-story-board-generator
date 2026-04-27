@@ -160,26 +160,30 @@ export function RestoreButton({ onRestore, className }: RestoreButtonProps) {
 
               if (imageFile) {
                 updateProgress(`RESTORING IMAGE: SCENE ${sceneNum}...`);
-                const imageBlob = await imageFile.async('blob');
-                const newImageName = `restored_${Date.now()}_${imageFileName}`;
+                try {
+                  const imageBlob = await imageFile.async('blob');
+                  const newImageName = `restored_${Date.now()}_${imageFileName}`;
 
-                const { error: imageUploadError } = await supabase.storage
-                  .from('media')
-                  .upload(newImageName, imageBlob, {
-                    contentType: 'image/png',
-                    upsert: true,
-                  });
-
-                if (imageUploadError) {
-                  console.error(`Failed to upload ${imageFileName} to Supabase:`, imageUploadError);
-                  // Fallback to local blob URL if upload fails
-                  scene.image_url = URL.createObjectURL(imageBlob);
-                } else {
-                  const { data: imagePublicUrlData } = supabase.storage
+                  const { error: imageUploadError } = await supabase.storage
                     .from('media')
-                    .getPublicUrl(newImageName);
-                  
-                  scene.image_url = imagePublicUrlData.publicUrl;
+                    .upload(newImageName, imageBlob, {
+                      contentType: 'image/png',
+                      upsert: true,
+                    });
+
+                  if (imageUploadError) {
+                    console.error(`Failed to upload ${imageFileName} to Supabase:`, imageUploadError);
+                    // Fallback to local blob URL if upload fails
+                    scene.image_url = URL.createObjectURL(imageBlob);
+                  } else {
+                    const { data: imagePublicUrlData } = supabase.storage
+                      .from('media')
+                      .getPublicUrl(newImageName);
+                    
+                    scene.image_url = imagePublicUrlData.publicUrl;
+                  }
+                } catch (err) {
+                  console.error(`Exception during image restore for ${imageFileName}:`, err);
                 }
                 completedTasks++;
                 updateProgress(`RESTORED IMAGE: SCENE ${sceneNum}...`);
