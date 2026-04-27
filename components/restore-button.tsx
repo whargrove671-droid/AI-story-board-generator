@@ -85,7 +85,16 @@ export function RestoreButton({ onRestore, className }: RestoreButtonProps) {
       }
       
       const storiesJson = await storiesFile.async('string');
-      const stories = JSON.parse(storiesJson);
+      let stories;
+      try {
+        stories = JSON.parse(storiesJson);
+      } catch (e) {
+        throw new Error('Malformed backup: Invalid JSON format.');
+      }
+
+      if (!Array.isArray(stories)) {
+        throw new Error('Malformed backup: Expected an array of stories.');
+      }
 
       const totalStories = Math.max(stories.length, 1);
       let completedStories = 0;
@@ -201,11 +210,11 @@ export function RestoreButton({ onRestore, className }: RestoreButtonProps) {
       // 5. Pass the restored data back to the parent to update local state
       onRestore(stories);
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to restore backup:', error);
       toast({
         title: 'Restore Failed',
-        description: 'Failed to restore backup. Please make sure this is a valid backup file.',
+        description: error.message || 'Failed to restore backup. Please make sure this is a valid backup file.',
         variant: 'destructive',
       });
     } finally {
