@@ -358,7 +358,10 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
     setEditedPrompt(scene.image_prompt);
   };
 
-  const handleCancelEditPrompt = () => {
+  const handleCancelEditPrompt = (originalPrompt: string) => {
+    if (editedPrompt !== originalPrompt && !window.confirm('SYS_WARN: UNSAVED CHANGES DETECTED.\n\nDiscard modifications?')) {
+      return;
+    }
     setEditingPromptSceneId(null);
     setEditedPrompt('');
   };
@@ -384,7 +387,10 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
     setEditedScript(scene.script);
   };
 
-  const handleCancelEdit = () => {
+  const handleCancelEdit = (originalScript: string) => {
+    if (editedScript !== originalScript && !window.confirm('SYS_WARN: UNSAVED CHANGES DETECTED.\n\nDiscard modifications?')) {
+      return;
+    }
     setEditingSceneId(null);
     setEditedScript('');
   };
@@ -863,7 +869,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
                           }} type="button" className="h-7 text-xs bg-black text-cyan-600 border-cyan-900 hover:text-cyan-400 hover:bg-cyan-950 rounded-none font-mono mr-auto">
                             {hasCopiedPrompt ? <Check className="w-3 h-3 mr-1 text-emerald-400" /> : <Copy className="w-3 h-3 mr-1" />} {hasCopiedPrompt ? 'COPIED' : 'COPY'}
                           </Button>
-                          <Button variant="outline" size="sm" onClick={handleCancelEditPrompt} disabled={isSavingPrompt} className="h-7 text-xs bg-black text-cyan-600 border-cyan-900 hover:text-cyan-400 hover:bg-cyan-950 rounded-none font-mono">
+                          <Button variant="outline" size="sm" onClick={() => handleCancelEditPrompt(scene.image_prompt)} disabled={isSavingPrompt} className="h-7 text-xs bg-black text-cyan-600 border-cyan-900 hover:text-cyan-400 hover:bg-cyan-950 rounded-none font-mono">
                             <X className="w-3 h-3 mr-1" /> CANCEL
                           </Button>
                           <Button variant="outline" size="sm" onClick={() => handleSavePrompt(scene.id)} disabled={isSavingPrompt} className="h-7 text-xs bg-cyan-950/30 text-cyan-400 border-cyan-500 hover:text-cyan-300 hover:bg-cyan-900/50 hover:shadow-[0_0_10px_rgba(6,182,212,0.4)] rounded-none font-mono">
@@ -962,7 +968,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
                           disabled={isSavingScript}
                         />
                         <div className="flex justify-end gap-2 mt-auto">
-                          <Button variant="outline" size="sm" onClick={handleCancelEdit} disabled={isSavingScript} className="h-7 text-xs bg-black text-cyan-600 border-cyan-900 hover:text-cyan-400 hover:bg-cyan-950 rounded-none font-mono">
+                          <Button variant="outline" size="sm" onClick={() => handleCancelEdit(scene.script)} disabled={isSavingScript} className="h-7 text-xs bg-black text-cyan-600 border-cyan-900 hover:text-cyan-400 hover:bg-cyan-950 rounded-none font-mono">
                             <X className="w-3 h-3 mr-1" /> CANCEL
                           </Button>
                           <Button variant="outline" size="sm" onClick={() => handleSaveScript(scene.id)} disabled={isSavingScript} className="h-7 text-xs bg-cyan-950/30 text-cyan-400 border-cyan-500 hover:text-cyan-300 hover:bg-cyan-900/50 hover:shadow-[0_0_10px_rgba(6,182,212,0.4)] rounded-none font-mono">
