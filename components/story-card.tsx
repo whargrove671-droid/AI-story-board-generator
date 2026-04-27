@@ -61,6 +61,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
   const [editingPromptSceneId, setEditingPromptSceneId] = useState<string | null>(null);
   const [editedPrompt, setEditedPrompt] = useState<string>('');
   const [isSavingPrompt, setIsSavingPrompt] = useState(false);
+  const [hasCopiedPrompt, setHasCopiedPrompt] = useState(false);
   const supabase = createClient();
   const { toast } = useToast();
 
@@ -854,8 +855,13 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
                           disabled={isSavingPrompt}
                         />
                         <div className="flex justify-end gap-2 mt-auto">
-                          <Button variant="outline" size="sm" onClick={() => { navigator.clipboard.writeText(editedPrompt); toast({ title: 'SYS_COPIED', description: 'PROMPT COPIED TO CLIPBOARD.' }); }} type="button" className="h-7 text-xs bg-black text-cyan-600 border-cyan-900 hover:text-cyan-400 hover:bg-cyan-950 rounded-none font-mono mr-auto">
-                            <Copy className="w-3 h-3 mr-1" /> COPY
+                          <Button variant="outline" size="sm" onClick={() => { 
+                            navigator.clipboard.writeText(editedPrompt); 
+                            toast({ title: 'SYS_COPIED', description: 'PROMPT COPIED TO CLIPBOARD.' }); 
+                            setHasCopiedPrompt(true);
+                            setTimeout(() => setHasCopiedPrompt(false), 2000);
+                          }} type="button" className="h-7 text-xs bg-black text-cyan-600 border-cyan-900 hover:text-cyan-400 hover:bg-cyan-950 rounded-none font-mono mr-auto">
+                            {hasCopiedPrompt ? <Check className="w-3 h-3 mr-1 text-emerald-400" /> : <Copy className="w-3 h-3 mr-1" />} {hasCopiedPrompt ? 'COPIED' : 'COPY'}
                           </Button>
                           <Button variant="outline" size="sm" onClick={handleCancelEditPrompt} disabled={isSavingPrompt} className="h-7 text-xs bg-black text-cyan-600 border-cyan-900 hover:text-cyan-400 hover:bg-cyan-950 rounded-none font-mono">
                             <X className="w-3 h-3 mr-1" /> CANCEL
