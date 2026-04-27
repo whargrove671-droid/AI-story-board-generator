@@ -106,6 +106,7 @@ export function RestoreButton({ onRestore, className }: RestoreButtonProps) {
       }, 0);
 
       let completedTasks = 0;
+      let failedMedia = 0;
       const updateProgress = (text: string) => {
         setProgressText(text);
         setProgress(10 + (completedTasks / Math.max(totalTasks, 1)) * 85);
@@ -136,6 +137,7 @@ export function RestoreButton({ onRestore, className }: RestoreButtonProps) {
                 console.error(`Failed to upload ${safeTitle}.mp4 to Supabase:`, uploadError);
                 // Fallback to local blob URL if upload fails
                 story.video_url = URL.createObjectURL(videoBlob);
+                failedMedia++;
               } else {
                 const { data: publicUrlData } = supabase.storage
                   .from('media')
@@ -145,6 +147,7 @@ export function RestoreButton({ onRestore, className }: RestoreButtonProps) {
               }
             } catch (err) {
               console.error(`Exception during video restore for ${safeTitle}.mp4:`, err);
+              failedMedia++;
             }
             completedTasks++;
             updateProgress(`RESTORED VIDEO: ${safeTitle.substring(0, 20)}...`);
@@ -179,6 +182,7 @@ export function RestoreButton({ onRestore, className }: RestoreButtonProps) {
                     console.error(`Failed to upload ${imageFileName} to Supabase:`, imageUploadError);
                     // Fallback to local blob URL if upload fails
                     scene.image_url = URL.createObjectURL(imageBlob);
+                    failedMedia++;
                   } else {
                     const { data: imagePublicUrlData } = supabase.storage
                       .from('media')
@@ -188,6 +192,7 @@ export function RestoreButton({ onRestore, className }: RestoreButtonProps) {
                   }
                 } catch (err) {
                   console.error(`Exception during image restore for ${imageFileName}:`, err);
+                  failedMedia++;
                 }
                 completedTasks++;
                 updateProgress(`RESTORED IMAGE: SCENE ${sceneNum}...`);
@@ -232,10 +237,18 @@ export function RestoreButton({ onRestore, className }: RestoreButtonProps) {
       setProgress(98);
       setProgressText('FINALIZING...');
 
-      toast({
-        title: 'Restore Complete',
-        description: 'Your backup was successfully restored and saved to the cloud.',
-      });
+      if (failedMedia > 0) {
+        toast({
+          title: 'Restore Completed with Warnings',
+          description: `Restored successfully, but ${failedMedia} media file(s) failed to upload to the cloud and are using local temporary URLs.`,
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'Restore Complete',
+          description: 'Your backup was successfully restored and saved to the cloud.',
+        });
+      }
 
       // 5. Pass the restored data back to the parent to update local state
       onRestore(stories);
