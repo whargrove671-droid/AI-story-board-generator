@@ -10,7 +10,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Loader as Loader2, LogOut, Sparkles, Image as ImageIcon, BookOpen, Youtube, LayoutGrid, LayoutList } from 'lucide-react';
-import { StoryCard } from '@/components/story-card';
 import { BackupButton } from '@/components/backup-button';
 import { RestoreButton } from '@/components/restore-button';
 import ErrorBoundary from '@/components/error-boundary';
@@ -23,6 +22,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import dynamic from 'next/dynamic';
+
+const StoryCard = dynamic(() => import('@/components/story-card').then(mod => mod.StoryCard));
 
 type Scene = {
   id: string;

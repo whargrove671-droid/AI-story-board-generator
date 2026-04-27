@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { Upload, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import JSZip from 'jszip';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -50,6 +49,7 @@ export function RestoreButton({ onRestore, className }: RestoreButtonProps) {
     if (!file) return;
 
     try {
+      const JSZip = (await import('jszip')).default;
       const zip = new JSZip();
       const loadedZip = await zip.loadAsync(file);
       
@@ -82,6 +82,7 @@ export function RestoreButton({ onRestore, className }: RestoreButtonProps) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('You must be logged in to restore data.');
 
+      const JSZip = (await import('jszip')).default;
       const zip = new JSZip();
       const loadedZip = await zip.loadAsync(selectedFile);
 

@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { Download, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import JSZip from 'jszip';
 import {
   Dialog,
   DialogContent,
@@ -56,6 +55,7 @@ export function BackupButton({ getData, fileName = 'storyboard-backup', classNam
       
       setProgress(10);
       setProgressText('PREPARING MEDIA FILES...');
+      const JSZip = (await import('jszip')).default;
       const zip = new JSZip();
 
       // 2. Add the main data file to the zip
