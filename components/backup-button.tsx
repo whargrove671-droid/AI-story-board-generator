@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { useToast } from '@/components/ui/use-toast';
 
 interface SceneWithImage {
   scene_number?: number;
@@ -35,6 +36,7 @@ export function BackupButton({ getData, fileName = 'storyboard-backup', classNam
   const [isBackingUp, setIsBackingUp] = React.useState(false);
   const [progress, setProgress] = React.useState(0);
   const [progressText, setProgressText] = React.useState('');
+  const { toast } = useToast();
 
   const handleBackup = async () => {
     setProgress(0);
@@ -124,9 +126,21 @@ export function BackupButton({ getData, fileName = 'storyboard-backup', classNam
       URL.revokeObjectURL(url);
       setProgress(100);
       setProgressText('BACKUP COMPLETE!');
+      
+      toast({
+        title: 'Backup Complete',
+        description: 'Your backup was successfully created and downloaded.',
+      });
+      
+      // Add a short delay so the user can see the 100% completion message before it auto-closes
+      await new Promise(resolve => setTimeout(resolve, 1500));
     } catch (error) {
       console.error('Failed to create backup zip:', error);
-      // Optionally trigger a Toast or Alert component here
+      toast({
+        title: 'Backup Failed',
+        description: 'Failed to create backup. Please try again.',
+        variant: 'destructive',
+      });
     } finally {
       setIsBackingUp(false);
     }
