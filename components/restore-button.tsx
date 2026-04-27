@@ -247,10 +247,8 @@ export function RestoreButton({ onRestore, className }: RestoreButtonProps) {
           `}</style>
           <div className="w-full bg-zinc-950 h-2 mt-2 rounded-none border border-cyan-900/30 overflow-hidden relative">
             <div
-              className="bg-cyan-500 h-full transition-all duration-300 ease-out shadow-[0_0_10px_rgba(6,182,212,0.5)]"
               className="h-full transition-all duration-300 ease-out shadow-[0_0_10px_rgba(6,182,212,0.5)] relative overflow-hidden bg-[repeating-linear-gradient(45deg,#06b6d4,#06b6d4_10px,#0891b2_10px,#0891b2_20px)]"
               style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
-            />
             >
               <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white to-transparent opacity-70 [animation:scan_1.5s_linear_infinite]" />
             </div>
