@@ -38,12 +38,30 @@ export function RestoreButton({ onRestore, className }: RestoreButtonProps) {
   const [progress, setProgress] = React.useState(0);
   const [progressText, setProgressText] = React.useState('');
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    setSelectedFile(file);
-    setIsDialogOpen(true);
+    try {
+      const zip = new JSZip();
+      const loadedZip = await zip.loadAsync(file);
+      
+      if (!loadedZip.file('stories.json')) {
+        throw new Error('Missing stories.json');
+      }
+
+      setSelectedFile(file);
+      setIsDialogOpen(true);
+    } catch (error) {
+      toast({
+        title: 'Invalid Backup File',
+        description: 'The selected file is not a valid backup archive or is missing stories.json.',
+        variant: 'destructive',
+      });
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
   };
 
   const confirmRestore = async () => {
