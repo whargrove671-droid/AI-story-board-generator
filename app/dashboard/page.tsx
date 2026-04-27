@@ -77,25 +77,18 @@ export default function DashboardPage() {
     try {
       const { data: storiesData, error: storiesError } = await supabase
         .from('stories')
-        .select('*')
+        .select('*, scenes(*)')
         .order('created_at', { ascending: false });
 
       if (storiesError) throw storiesError;
 
-      const storiesWithScenes = await Promise.all(
-        (storiesData || []).map(async (story) => {
-          const { data: scenesData } = await supabase
-            .from('scenes')
-            .select('*')
-            .eq('story_id', story.id)
-            .order('scene_number', { ascending: true });
-
-          return {
-            ...story,
-            scenes: scenesData || [],
-          };
-        })
-      );
+      const storiesWithScenes = (storiesData || []).map((story) => ({
+        ...story,
+        // Sort scenes locally since we fetched them in a single joined query
+        scenes: (story.scenes || []).sort(
+          (a: any, b: any) => (a.scene_number || 0) - (b.scene_number || 0)
+        ),
+      }));
 
       setStories(storiesWithScenes);
     } catch (error) {

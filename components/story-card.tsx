@@ -405,6 +405,12 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
   };
 
   const handleEditPrompt = (scene: Scene) => {
+    if (editingPromptSceneId && editingPromptSceneId !== scene.id) {
+      const oldScene = story.scenes.find(s => s.id === editingPromptSceneId);
+      if (oldScene && editedPrompt !== oldScene.image_prompt && !window.confirm('SYS_WARN: UNSAVED CHANGES IN ANOTHER PROMPT DETECTED.\n\nDiscard modifications?')) {
+        return;
+      }
+    }
     setEditingPromptSceneId(scene.id);
     setEditedPrompt(scene.image_prompt);
   };
@@ -435,6 +441,12 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
   };
 
   const handleEditScript = (scene: Scene) => {
+    if (editingSceneId && editingSceneId !== scene.id) {
+      const oldScene = story.scenes.find(s => s.id === editingSceneId);
+      if (oldScene && editedScript !== oldScene.script && !window.confirm('SYS_WARN: UNSAVED CHANGES IN ANOTHER SCRIPT DETECTED.\n\nDiscard modifications?')) {
+        return;
+      }
+    }
     setEditingSceneId(scene.id);
     setEditedScript(scene.script);
   };

@@ -19,6 +19,7 @@ interface SceneWithImage {
 // A minimal interface for the data we expect.
 // This helps ensure that we get the necessary video_url.
 interface StoryWithVideo {
+  id?: string;
   title: string;
   video_url?: string | null;
   scenes?: SceneWithImage[];
@@ -69,8 +70,8 @@ export function BackupButton({ getData, fileName = 'storyboard-backup', classNam
       const downloadTasks: (() => Promise<void>)[] = [];
 
       // 4. Fetch each video and image, adding them to the zip
-      stories.forEach((story) => {
-        const safeTitle = story.title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+      stories.forEach((story, index) => {
+        const safeTitle = `${story.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${story.id || index}`;
 
         // Queue video downloads
         if (story.video_url && videoFolder) {

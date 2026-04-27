@@ -120,8 +120,9 @@ export function RestoreButton({ onRestore, className }: RestoreButtonProps) {
       };
 
       // 2. Extract videos and upload them back to Supabase
-      for (const story of stories) {
-        const safeTitle = story.title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+      for (let i = 0; i < stories.length; i++) {
+        const story = stories[i];
+        const safeTitle = `${story.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${story.id || i}`;
 
         if (story.video_url) {
           const videoFile = loadedZip.file(`videos/${safeTitle}.mp4`);
