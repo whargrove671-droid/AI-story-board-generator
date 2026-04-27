@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Loader as Loader2, CircleAlert as AlertCircle, CircleCheck as CheckCircle, Trash2, Youtube, BookOpen, Download, ChevronDown, ChevronUp, RefreshCw, Edit2, Check, X, Copy } from 'lucide-react';
+import { Loader as Loader2, CircleAlert as AlertCircle, CircleCheck as CheckCircle, Trash2, Youtube, BookOpen, Download, ChevronDown, ChevronUp, RefreshCw, Edit2, Check, X, Copy, Volume2, VolumeX } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -63,6 +63,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
   const [editedPrompt, setEditedPrompt] = useState<string>('');
   const [isSavingPrompt, setIsSavingPrompt] = useState(false);
   const [hasCopiedPrompt, setHasCopiedPrompt] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const supabase = createClient();
   const { toast } = useToast();
 
@@ -88,6 +89,32 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
     };
     checkYt();
   }, [supabase]);
+
+  const playSuccessSound = () => {
+    if (!soundEnabled) return;
+    try {
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContextClass) return;
+      
+      const ctx = new AudioContextClass();
+      const osc = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      
+      // High-tech cyberpunk double-beep
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(880, ctx.currentTime); // A5
+      osc.frequency.setValueAtTime(1760, ctx.currentTime + 0.05); // A6
+      
+      gainNode.gain.setValueAtTime(0.05, ctx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+      
+      osc.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      
+      osc.start();
+      osc.stop(ctx.currentTime + 0.15);
+    } catch (e) { /* Ignore audio errors */ }
+  };
 
   const handleGenerateVideo = async () => {
     try {
@@ -121,6 +148,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
 
       toast({ title: 'Success', description: 'Video generated successfully!' });
       onRefresh();
+      playSuccessSound();
 
       // YouTube Auto-Upload
       if (autoUpload) {
@@ -140,6 +168,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
         
         toast({ title: 'Success', description: 'Video automatically uploaded to YouTube!' });
         onRefresh();
+        playSuccessSound();
       }
 
     } catch (error: any) {
@@ -168,6 +197,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
       
       toast({ title: 'Success', description: 'Video uploaded to YouTube!' });
       onRefresh();
+      playSuccessSound();
     } catch (error: any) {
       toast({ title: 'Error', description: error.message || 'Failed to upload to YouTube', variant: 'destructive' });
     } finally {
@@ -263,6 +293,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
       setDownloadProgress(0);
       if (downloadSucceeded) {
         setDownloadCompleted(true);
+        playSuccessSound();
         setTimeout(() => setDownloadCompleted(false), 2500);
       }
     }
@@ -312,6 +343,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
           title: 'Completed',
           description: 'All images generated successfully.',
         });
+        playSuccessSound();
       }
     } catch (error: any) {
       toast({
@@ -343,6 +375,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
       
       toast({ title: 'SYS_SUCCESS', description: 'SCENE RE-RENDER QUEUED.' });
       onRefresh();
+      playSuccessSound();
     } catch (error: any) {
       toast({ title: 'ERR_FAILED', description: error.message || 'Render failed', variant: 'destructive' });
     } finally {
@@ -376,6 +409,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
       toast({ title: 'SYS_SUCCESS', description: 'IMAGE PROMPT UPDATED.' });
       setEditingPromptSceneId(null);
       onRefresh();
+      playSuccessSound();
     } catch (error: any) {
       toast({ title: 'ERR_FAILED', description: error.message || 'Failed to update prompt', variant: 'destructive' });
     } finally {
@@ -405,6 +439,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
       toast({ title: 'SYS_SUCCESS', description: 'SCRIPT UPDATED.' });
       setEditingSceneId(null);
       onRefresh();
+      playSuccessSound();
     } catch (error: any) {
       toast({ title: 'ERR_FAILED', description: error.message || 'Failed to update script', variant: 'destructive' });
     } finally {
@@ -489,6 +524,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
           }
         }
       }
+      playSuccessSound();
 
     } catch (error: any) {
       toast({
@@ -512,6 +548,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
         description: 'The story has been removed from your dashboard.',
       });
       onRefresh();
+      playSuccessSound();
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -598,6 +635,25 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
         {isExpanded && (
           <TooltipProvider delayDuration={300}>
             <div className="flex flex-wrap items-center gap-3 pt-4 mt-4 border-t border-cyan-900/50">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center space-x-2 bg-black px-3 py-1.5 border border-cyan-900/50 shadow-[0_0_10px_rgba(6,182,212,0.1)] rounded-none">
+                    <Switch 
+                      id={`sound-toggle-${story.id}`} 
+                      checked={soundEnabled} 
+                      onCheckedChange={setSoundEnabled}
+                      className="scale-75 data-[state=checked]:bg-emerald-600 data-[state=unchecked]:bg-zinc-800 border-cyan-900"
+                    />
+                    <Label htmlFor={`sound-toggle-${story.id}`} className="text-xs font-mono text-cyan-400 cursor-pointer flex items-center gap-1 select-none pr-1 uppercase">
+                      {soundEnabled ? <Volume2 className="w-3.5 h-3.5 text-emerald-500" /> : <VolumeX className="w-3.5 h-3.5 text-zinc-600" />}
+                      SYS_AUDIO
+                    </Label>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent className="bg-black border border-cyan-500 text-cyan-400 font-mono text-xs rounded-none shadow-[0_0_10px_rgba(6,182,212,0.3)]">
+                  <p>Toggle action completion sounds</p>
+                </TooltipContent>
+              </Tooltip>
               {(youtubeMainConnected || youtubeSubConnected) && (
                 <Tooltip>
                   <TooltipTrigger asChild>
