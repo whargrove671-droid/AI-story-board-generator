@@ -120,27 +120,31 @@ export function RestoreButton({ onRestore, className }: RestoreButtonProps) {
           
           if (videoFile) {
             updateProgress(`RESTORING VIDEO: ${safeTitle.substring(0, 20)}...`);
-            const videoBlob = await videoFile.async('blob');
-            const fileName = `restored_${Date.now()}_${safeTitle}.mp4`;
+            try {
+              const videoBlob = await videoFile.async('blob');
+              const fileName = `restored_${Date.now()}_${safeTitle}.mp4`;
 
-            // Upload the blob back to Supabase Storage
-            const { error: uploadError } = await supabase.storage
-              .from('media')
-              .upload(fileName, videoBlob, {
-                contentType: 'video/mp4',
-                upsert: true,
-              });
-
-            if (uploadError) {
-              console.error(`Failed to upload ${safeTitle}.mp4 to Supabase:`, uploadError);
-              // Fallback to local blob URL if upload fails
-              story.video_url = URL.createObjectURL(videoBlob);
-            } else {
-              const { data: publicUrlData } = supabase.storage
+              // Upload the blob back to Supabase Storage
+              const { error: uploadError } = await supabase.storage
                 .from('media')
-                .getPublicUrl(fileName);
-              
-              story.video_url = publicUrlData.publicUrl;
+                .upload(fileName, videoBlob, {
+                  contentType: 'video/mp4',
+                  upsert: true,
+                });
+
+              if (uploadError) {
+                console.error(`Failed to upload ${safeTitle}.mp4 to Supabase:`, uploadError);
+                // Fallback to local blob URL if upload fails
+                story.video_url = URL.createObjectURL(videoBlob);
+              } else {
+                const { data: publicUrlData } = supabase.storage
+                  .from('media')
+                  .getPublicUrl(fileName);
+                
+                story.video_url = publicUrlData.publicUrl;
+              }
+            } catch (err) {
+              console.error(`Exception during video restore for ${safeTitle}.mp4:`, err);
             }
             completedTasks++;
             updateProgress(`RESTORED VIDEO: ${safeTitle.substring(0, 20)}...`);
