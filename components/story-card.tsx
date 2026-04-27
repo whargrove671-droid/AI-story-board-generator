@@ -658,36 +658,62 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
                 </TooltipContent>
               </Tooltip>
               {(youtubeMainConnected || youtubeSubConnected) && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="flex items-center space-x-2 bg-black px-3 py-1.5 border border-cyan-900/50 shadow-[0_0_10px_rgba(6,182,212,0.1)] rounded-none">
-                      <Select value={uploadChannel} onValueChange={(val: 'main' | 'sub') => setUploadChannel(val)}>
-                        <SelectTrigger className="w-28 h-8 text-xs border-none bg-transparent shadow-none focus:ring-0 px-1 text-cyan-400 font-mono">
-                          <SelectValue placeholder="Channel" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-black border-cyan-900 text-cyan-400 font-mono rounded-none">
-                          {youtubeMainConnected && <SelectItem value="main">Main Channel</SelectItem>}
-                          {youtubeSubConnected && <SelectItem value="sub">Sub Channel</SelectItem>}
-                        </SelectContent>
-                      </Select>
-                      <div className="w-px h-4 bg-cyan-900/50" />
-                      <Switch 
-                        id={`yt-upload-${story.id}`} 
-                        checked={autoUpload} 
-                        onCheckedChange={setAutoUpload}
-                        disabled={isGeneratingVideo || isUploadingYouTube}
-                        className="scale-75 data-[state=checked]:bg-fuchsia-600 data-[state=unchecked]:bg-zinc-800 border-cyan-900"
-                      />
-                      <Label htmlFor={`yt-upload-${story.id}`} className="text-xs font-mono text-cyan-400 cursor-pointer flex items-center gap-1 select-none pr-1 uppercase">
-                        <Youtube className="w-3.5 h-3.5 text-red-500" />
-                        AUTO-UPLINK
-                      </Label>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent className="bg-black border border-cyan-500 text-cyan-400 font-mono text-xs rounded-none shadow-[0_0_10px_rgba(6,182,212,0.3)]">
-                    <p>Automatically upload to YouTube when generation completes</p>
-                  </TooltipContent>
-                </Tooltip>
+                <div className="flex items-center space-x-2 bg-black px-3 py-1.5 border border-cyan-900/50 shadow-[0_0_10px_rgba(6,182,212,0.1)] rounded-none">
+                  <Select value={uploadChannel} onValueChange={(val: 'main' | 'sub') => setUploadChannel(val)}>
+                    <SelectTrigger className="w-28 h-8 text-xs border-none bg-transparent shadow-none focus:ring-0 px-1 text-cyan-400 font-mono">
+                      <SelectValue placeholder="Channel" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-black border-cyan-900 text-cyan-400 font-mono rounded-none">
+                      {youtubeMainConnected && <SelectItem value="main">Main Channel</SelectItem>}
+                      {youtubeSubConnected && <SelectItem value="sub">Sub Channel</SelectItem>}
+                    </SelectContent>
+                  </Select>
+                  
+                  <div className="w-px h-4 bg-cyan-900/50" />
+                  
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex items-center gap-1">
+                        <Switch 
+                          id={`yt-upload-${story.id}`} 
+                          checked={autoUpload} 
+                          onCheckedChange={setAutoUpload}
+                          disabled={isGeneratingVideo || isUploadingYouTube || !!story.youtube_url}
+                          className="scale-75 data-[state=checked]:bg-fuchsia-600 data-[state=unchecked]:bg-zinc-800 border-cyan-900"
+                        />
+                        <Label htmlFor={`yt-upload-${story.id}`} className={`text-xs font-mono cursor-pointer flex items-center gap-1 select-none pr-1 uppercase ${story.youtube_url ? 'text-zinc-600' : 'text-cyan-400'}`}>
+                          <Youtube className={`w-3.5 h-3.5 ${story.youtube_url ? 'text-zinc-600' : 'text-red-500'}`} />
+                          AUTO
+                        </Label>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent className="bg-black border border-cyan-500 text-cyan-400 font-mono text-xs rounded-none shadow-[0_0_10px_rgba(6,182,212,0.3)]">
+                      <p>{story.youtube_url ? 'ALREADY UPLOADED TO YOUTUBE' : 'AUTOMATICALLY UPLOAD TO YOUTUBE WHEN GENERATION COMPLETES'}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  
+                  <div className="w-px h-4 bg-cyan-900/50" />
+                  
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="inline-block">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={handleUploadYouTube} 
+                          disabled={isUploadingYouTube || !story.video_url || !!story.youtube_url}
+                          className={`h-7 text-xs bg-red-950/30 hover:bg-red-900/50 text-red-400 hover:text-red-300 border border-red-900/50 hover:border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.1)] transition-all font-mono uppercase rounded-none ${!isUploadingYouTube && story.video_url && !story.youtube_url ? 'animate-pulse hover:animate-none' : ''}`}
+                        >
+                          {isUploadingYouTube ? <Loader2 className="h-3 w-3 animate-spin mr-1.5" /> : <Youtube className="h-3 w-3 mr-1.5" />}
+                          {isUploadingYouTube ? 'UPLOADING...' : (story.youtube_url ? 'UPLOADED' : 'UPLOAD_YT')}
+                        </Button>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent className="bg-black border border-cyan-500 text-cyan-400 font-mono text-xs rounded-none shadow-[0_0_10px_rgba(6,182,212,0.3)]">
+                      <p>{!story.video_url ? 'SYS: VIDEO MUST BE COMPILED FIRST' : story.youtube_url ? 'SYS: ALREADY UPLOADED TO YOUTUBE' : 'SYS: MANUALLY UPLOAD TO YOUTUBE'}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
               )}
               {canGenerateVideo && (
                 <Tooltip>
@@ -785,37 +811,6 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
                   </TooltipTrigger>
                   <TooltipContent className="bg-black border border-cyan-500 text-cyan-400 font-mono text-xs rounded-none shadow-[0_0_10px_rgba(6,182,212,0.3)]">
                     <p>Save the final MP4 video to your device</p>
-                  </TooltipContent>
-                </Tooltip>
-              )}
-              {story.video_url && !story.youtube_url && (youtubeMainConnected || youtubeSubConnected) && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="flex items-center gap-2 bg-black p-1 rounded-none border border-cyan-900/50 shadow-[0_0_10px_rgba(6,182,212,0.1)]">
-                      <Select value={uploadChannel} onValueChange={(val: 'main' | 'sub') => setUploadChannel(val)}>
-                        <SelectTrigger className="w-28 h-7 text-xs border-none shadow-none focus:ring-0 text-cyan-400 font-mono">
-                          <SelectValue placeholder="Channel" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-black border-cyan-900 text-cyan-400 font-mono rounded-none">
-                          {youtubeMainConnected && <SelectItem value="main">Main Channel</SelectItem>}
-                          {youtubeSubConnected && <SelectItem value="sub">Sub Channel</SelectItem>}
-                        </SelectContent>
-                      </Select>
-                      <div className="w-px h-4 bg-cyan-900/50" />
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={handleUploadYouTube} 
-                        disabled={isUploadingYouTube}
-                        className={`h-7 text-xs bg-red-950/30 hover:bg-red-900/50 text-red-400 hover:text-red-300 border border-red-900/50 hover:border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.1)] transition-all font-mono uppercase rounded-none ${!isUploadingYouTube ? 'animate-pulse hover:animate-none' : ''}`}
-                      >
-                        {isUploadingYouTube ? <Loader2 className="h-3 w-3 animate-spin mr-1.5" /> : <Youtube className="h-3 w-3 mr-1.5" />}
-                        {isUploadingYouTube ? 'UPLOADING...' : 'UPLOAD_YT'}
-                      </Button>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent className="bg-black border border-cyan-500 text-cyan-400 font-mono text-xs rounded-none shadow-[0_0_10px_rgba(6,182,212,0.3)]">
-                    <p>Upload this video manually to your YouTube channel</p>
                   </TooltipContent>
                 </Tooltip>
               )}
