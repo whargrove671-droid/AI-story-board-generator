@@ -38,6 +38,13 @@ export function BackupButton({ getData, fileName = 'storyboard-backup', classNam
   const [progressText, setProgressText] = React.useState('');
   const { toast } = useToast();
 
+  const progressBarRef = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => {
+    if (progressBarRef.current) {
+      progressBarRef.current.style.width = `${Math.min(100, Math.max(0, progress))}%`;
+    }
+  }, [progress]);
+
   const handleBackup = async () => {
     setProgress(0);
     setProgressText('FETCHING STORY DATA...');
@@ -67,8 +74,9 @@ export function BackupButton({ getData, fileName = 'storyboard-backup', classNam
 
         // Queue video downloads
         if (story.video_url && videoFolder) {
+          const videoUrl = story.video_url;
           downloadTasks.push(() =>
-            fetch(story.video_url)
+            fetch(videoUrl)
               .then((res) => { if (!res.ok) throw new Error(`Status ${res.status}`); return res.blob(); })
               .then((blob) => { videoFolder.file(`${safeTitle}.mp4`, blob); })
               .catch((err) => console.error(`Error processing video for story "${story.title}":`, err))
@@ -79,8 +87,9 @@ export function BackupButton({ getData, fileName = 'storyboard-backup', classNam
         if (story.scenes && Array.isArray(story.scenes) && imageFolder) {
           story.scenes.forEach((scene, index) => {
             if (scene.image_url) {
+              const imageUrl = scene.image_url;
               downloadTasks.push(() =>
-                fetch(scene.image_url)
+                fetch(imageUrl)
                   .then((res) => { if (!res.ok) throw new Error(`Status ${res.status}`); return res.blob(); })
                   .then((blob) => {
                     const sceneNum = scene.scene_number ?? (index + 1);
@@ -167,8 +176,8 @@ export function BackupButton({ getData, fileName = 'storyboard-backup', classNam
           </DialogHeader>
           <div className="w-full bg-zinc-950 h-2 mt-2 rounded-none border border-cyan-900/30 overflow-hidden relative">
             <div
+              ref={progressBarRef}
               className="bg-cyan-500 h-full transition-all duration-300 ease-out shadow-[0_0_10px_rgba(6,182,212,0.5)]"
-              style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
             />
           </div>
           <div className="text-right text-xs text-cyan-500 font-mono mt-1 tracking-widest">

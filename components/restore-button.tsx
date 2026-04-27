@@ -38,6 +38,13 @@ export function RestoreButton({ onRestore, className }: RestoreButtonProps) {
   const [progress, setProgress] = React.useState(0);
   const [progressText, setProgressText] = React.useState('');
 
+  const progressBarRef = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => {
+    if (progressBarRef.current) {
+      progressBarRef.current.style.width = `${Math.min(100, Math.max(0, progress))}%`;
+    }
+  }, [progress]);
+
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -135,8 +142,8 @@ export function RestoreButton({ onRestore, className }: RestoreButtonProps) {
 
               if (uploadError) {
                 console.error(`Failed to upload ${safeTitle}.mp4 to Supabase:`, uploadError);
-                // Fallback to local blob URL if upload fails
-                story.video_url = URL.createObjectURL(videoBlob);
+                // Fallback to null so the user can recompile the video later
+                story.video_url = null;
                 failedMedia++;
               } else {
                 const { data: publicUrlData } = supabase.storage
@@ -147,6 +154,7 @@ export function RestoreButton({ onRestore, className }: RestoreButtonProps) {
               }
             } catch (err) {
               console.error(`Exception during video restore for ${safeTitle}.mp4:`, err);
+              story.video_url = null;
               failedMedia++;
             }
             completedTasks++;
@@ -180,8 +188,9 @@ export function RestoreButton({ onRestore, className }: RestoreButtonProps) {
 
                   if (imageUploadError) {
                     console.error(`Failed to upload ${imageFileName} to Supabase:`, imageUploadError);
-                    // Fallback to local blob URL if upload fails
-                    scene.image_url = URL.createObjectURL(imageBlob);
+                    // Mark as failed so the dashboard's "Retry Images" button catches it
+                    scene.image_url = null;
+                    scene.image_status = 'failed';
                     failedMedia++;
                   } else {
                     const { data: imagePublicUrlData } = supabase.storage
@@ -192,6 +201,8 @@ export function RestoreButton({ onRestore, className }: RestoreButtonProps) {
                   }
                 } catch (err) {
                   console.error(`Exception during image restore for ${imageFileName}:`, err);
+                  scene.image_url = null;
+                  scene.image_status = 'failed';
                   failedMedia++;
                 }
                 completedTasks++;
@@ -286,6 +297,8 @@ export function RestoreButton({ onRestore, className }: RestoreButtonProps) {
         ref={fileInputRef}
         onChange={handleFileChange}
         className="hidden"
+        title="Upload backup file"
+        aria-label="Upload backup file"
       />
       <Button 
         onClick={() => fileInputRef.current?.click()} 
@@ -309,16 +322,11 @@ export function RestoreButton({ onRestore, className }: RestoreButtonProps) {
               {progressText}
             </DialogDescription>
           </DialogHeader>
-          <style>{`
-            @keyframes scan {
-              0% { transform: translateX(-100%); }
-              100% { transform: translateX(100%); }
-            }
-          `}</style>
+
           <div className="w-full bg-zinc-950 h-2 mt-2 rounded-none border border-cyan-900/30 overflow-hidden relative">
             <div
+              ref={progressBarRef}
               className="h-full transition-all duration-300 ease-out shadow-[0_0_10px_rgba(6,182,212,0.5)] relative overflow-hidden bg-[repeating-linear-gradient(45deg,#06b6d4,#06b6d4_10px,#0891b2_10px,#0891b2_20px)]"
-              style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
             >
               <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white to-transparent opacity-70 [animation:scan_1.5s_linear_infinite]" />
             </div>
