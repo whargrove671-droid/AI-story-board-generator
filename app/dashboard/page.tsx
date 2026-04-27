@@ -42,7 +42,7 @@ type Story = {
   created_at: string;
   video_url?: string | null;
   youtube_url?: string | null;
-  scenes: Scene[];
+  scenes?: Scene[];
 };
 
 export default function DashboardPage() {
@@ -91,20 +91,12 @@ export default function DashboardPage() {
     try {
       const { data: storiesData, error: storiesError } = await supabase
         .from('stories')
-        .select('*, scenes(*)')
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (storiesError) throw storiesError;
 
-      const storiesWithScenes = (storiesData || []).map((story) => ({
-        ...story,
-        // Sort scenes locally since we fetched them in a single joined query
-        scenes: (story.scenes || []).sort(
-          (a: any, b: any) => (a.scene_number || 0) - (b.scene_number || 0)
-        ),
-      }));
-
-      setStories(storiesWithScenes);
+      setStories(storiesData || []);
     } catch (error) {
       console.error('Error loading stories:', error);
     } finally {
@@ -420,7 +412,10 @@ export default function DashboardPage() {
               </h2>
             <div className="flex flex-wrap items-center justify-end gap-3">
               <div className="flex items-center gap-2 bg-black p-1 rounded-none border border-cyan-900/50 shadow-[0_0_10px_rgba(6,182,212,0.1)]">
-                <BackupButton getData={() => stories} className="h-8 px-3 rounded-none font-mono uppercase text-xs" />
+                <BackupButton getData={async () => {
+                  const { data } = await supabase.from('stories').select('*, scenes(*)').order('created_at', { ascending: false });
+                  return data || [];
+                }} className="h-8 px-3 rounded-none font-mono uppercase text-xs" />
                 <RestoreButton onRestore={() => loadStories()} className="h-8 px-3 rounded-none font-mono uppercase text-xs" />
               </div>
               <div className="flex items-center gap-2 bg-black p-1 rounded-none border border-cyan-900/50 shadow-[0_0_10px_rgba(6,182,212,0.1)] w-max">

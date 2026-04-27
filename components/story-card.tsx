@@ -31,7 +31,7 @@ type Story = {
   created_at: string;
   video_url?: string | null;
   youtube_url?: string | null;
-  scenes: Scene[];
+  scenes?: Scene[];
 };
 
 interface StoryCardProps {
@@ -64,6 +64,9 @@ export function StoryCard({ story, onRefresh, viewMode = 'card', onDelete }: Sto
   const [isSavingPrompt, setIsSavingPrompt] = useState(false);
   const [hasCopiedPrompt, setHasCopiedPrompt] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
+  const [localScenes, setLocalScenes] = useState<Scene[]>(story.scenes || []);
+  const [isLoadingScenes, setIsLoadingScenes] = useState(false);
+  const [hasFetchedScenes, setHasFetchedScenes] = useState(!!story.scenes && story.scenes.length > 0);
   const supabase = createClient();
   const { toast } = useToast();
 
@@ -117,6 +120,42 @@ export function StoryCard({ story, onRefresh, viewMode = 'card', onDelete }: Sto
     checkYt();
   }, [supabase]);
 
+  useEffect(() => {
+    if (story.scenes) {
+      setLocalScenes(story.scenes);
+      setHasFetchedScenes(true);
+    }
+  }, [story.scenes]);
+
+  const fetchScenes = async () => {
+    setIsLoadingScenes(true);
+    const { data, error } = await supabase
+      .from('scenes')
+      .select('*')
+      .eq('story_id', story.id)
+      .order('scene_number', { ascending: true });
+
+    if (!error && data) {
+      setLocalScenes(data);
+      setHasFetchedScenes(true);
+    }
+    setIsLoadingScenes(false);
+  };
+
+  useEffect(() => {
+    if (isExpanded && !hasFetchedScenes && !isLoadingScenes) {
+      fetchScenes();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isExpanded, hasFetchedScenes]);
+
+  const handleLocalRefresh = async () => {
+    onRefresh();
+    if (isExpanded || hasFetchedScenes) {
+      await fetchScenes();
+    }
+  };
+
   const playSuccessSound = () => {
     if (!soundEnabled) return;
     try {
@@ -161,7 +200,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card', onDelete }: Sto
       sysToast('SYS.VIDEO_COMPILER', 'MERGING IMAGES AND AUDIO. PLEASE WAIT...');
       
       // Update local status so UI shows it's compiling
-      onRefresh();
+      handleLocalRefresh();
 
       const videoResponse = await fetch('/api/compile-video', {
         method: 'POST',
@@ -174,7 +213,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card', onDelete }: Sto
       }
 
       sysToast('SYS.SUCCESS', 'VIDEO GENERATED SUCCESSFULLY.');
-      onRefresh();
+      handleLocalRefresh();
       playSuccessSound();
 
       // YouTube Auto-Upload
@@ -194,7 +233,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card', onDelete }: Sto
         }
         
         sysToast('SYS.UPLINK_ESTABLISHED', 'VIDEO AUTO-UPLOADED TO YOUTUBE.');
-        onRefresh();
+        handleLocalRefresh();
         playSuccessSound();
       }
 
@@ -223,7 +262,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card', onDelete }: Sto
       }
       
       sysToast('SYS.UPLINK_ESTABLISHED', 'VIDEO UPLOADED TO YOUTUBE.');
-      onRefresh();
+      handleLocalRefresh();
       playSuccessSound();
     } catch (error: any) {
       errToast('ERR.UPLINK_FAILED', error.message || 'YOUTUBE UPLOAD FAILED.');
@@ -350,7 +389,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card', onDelete }: Sto
           }
           
           const data = await response.json();
-          onRefresh(); // Refresh UI to show the new image or status
+          handleLocalRefresh(); // Refresh UI to show the new image or status
           hasMore = data.morePending;
           errorCount = 0; // reset on success
         } catch (err) {
@@ -391,7 +430,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card', onDelete }: Sto
       if (!response.ok) throw new Error('FAILED TO COMMUNICATE WITH RENDER NODE');
       
       sysToast('SYS.SUCCESS', 'SCENE RE-RENDER QUEUED.');
-      onRefresh();
+      handleLocalRefresh();
       playSuccessSound();
     } catch (error: any) {
       errToast('ERR.RENDER_FAILED', error.message || 'RENDER FAILED.');
@@ -406,7 +445,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card', onDelete }: Sto
 
   const handleEditPrompt = (scene: Scene) => {
     if (editingPromptSceneId && editingPromptSceneId !== scene.id) {
-      const oldScene = story.scenes.find(s => s.id === editingPromptSceneId);
+      const oldScene = localScenes.find(s => s.id === editingPromptSceneId);
       if (oldScene && editedPrompt !== oldScene.image_prompt && !window.confirm('SYS_WARN: UNSAVED CHANGES IN ANOTHER PROMPT DETECTED.\n\nDiscard modifications?')) {
         return;
       }
@@ -431,7 +470,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card', onDelete }: Sto
       
       sysToast('SYS.SUCCESS', 'IMAGE PROMPT UPDATED.');
       setEditingPromptSceneId(null);
-      onRefresh();
+      handleLocalRefresh();
       playSuccessSound();
     } catch (error: any) {
       errToast('ERR.UPDATE_FAILED', error.message || 'FAILED TO UPDATE PROMPT.');
@@ -442,7 +481,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card', onDelete }: Sto
 
   const handleEditScript = (scene: Scene) => {
     if (editingSceneId && editingSceneId !== scene.id) {
-      const oldScene = story.scenes.find(s => s.id === editingSceneId);
+      const oldScene = localScenes.find(s => s.id === editingSceneId);
       if (oldScene && editedScript !== oldScene.script && !window.confirm('SYS_WARN: UNSAVED CHANGES IN ANOTHER SCRIPT DETECTED.\n\nDiscard modifications?')) {
         return;
       }
@@ -467,7 +506,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card', onDelete }: Sto
       
       sysToast('SYS.SUCCESS', 'SCRIPT UPDATED.');
       setEditingSceneId(null);
-      onRefresh();
+      handleLocalRefresh();
       playSuccessSound();
     } catch (error: any) {
       errToast('ERR.UPDATE_FAILED', error.message || 'FAILED TO UPDATE SCRIPT.');
@@ -492,7 +531,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card', onDelete }: Sto
       }
 
       // Gather context
-      const lastScenes = story.scenes.slice(-4).map(s => s.script).join('\n\n');
+      const lastScenes = localScenes.slice(-4).map(s => s.script).join('\n\n');
       const continuationIdea = `This is a continuation of the previous part. Continue the narrative seamlessly. Here is the end of the previous part for context:\n\n${lastScenes}`;
 
       const { data: { user } } = await supabase.auth.getUser();
@@ -523,7 +562,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card', onDelete }: Sto
 
       sysToast('SYS.SUCCESS', 'TEXT GENERATED. REROUTING TO IMAGE RENDERER...');
 
-      onRefresh();
+      handleLocalRefresh();
 
       // Trigger image generation robustly
       let hasMore = true;
@@ -539,7 +578,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card', onDelete }: Sto
           if (!res.ok) throw new Error('Failed to generate image');
           
           const data = await res.json();
-          onRefresh();
+          handleLocalRefresh();
           hasMore = data.morePending;
           errorCount = 0; // reset on success
         } catch (err) {
@@ -594,16 +633,20 @@ export function StoryCard({ story, onRefresh, viewMode = 'card', onDelete }: Sto
     }
   };
 
-  const hasStuckScenes = story.scenes.some(s => s.image_status === 'pending' || s.image_status === 'failed');
-  const isGeneratingImages = story.scenes.some(s => s.image_status === 'generating');
-  const allImagesDone = story.scenes.length > 0 && story.scenes.every(s => s.image_status === 'completed' || s.image_status === 'skipped');
+  const hasStuckScenes = localScenes.some(s => s.image_status === 'pending' || s.image_status === 'failed');
+  const isGeneratingImages = localScenes.some(s => s.image_status === 'generating');
+  const allImagesDone = hasFetchedScenes && localScenes.length > 0 && localScenes.every(s => s.image_status === 'completed' || s.image_status === 'skipped');
   const canGenerateVideo = allImagesDone && !story.video_url && story.status !== 'compiling_video';
   const isStuckCompiling = allImagesDone && !story.video_url && story.status === 'compiling_video';
   const canRegenerateVideo = allImagesDone && !!story.video_url && story.status !== 'compiling_video';
   
-  const canContinueSeries = story.scenes.length === 40 && allImagesDone && story.status !== 'compiling_video';
+  const canContinueSeries = localScenes.length === 40 && allImagesDone && story.status !== 'compiling_video';
 
-  const totalWords = story.scenes.reduce((acc, scene) => acc + (scene.script ? scene.script.split(/\s+/).length : 0), 0);
+  const totalWords = hasFetchedScenes 
+    ? localScenes.reduce((acc, scene) => acc + (scene.script ? scene.script.split(/\s+/).length : 0), 0)
+    : '---';
+
+  const sceneCount = hasFetchedScenes ? localScenes.length : '---';
 
   return (
     <Card className="bg-black border border-cyan-900/50 shadow-[0_0_20px_rgba(6,182,212,0.1)] hover:shadow-[0_0_30px_rgba(6,182,212,0.2)] overflow-hidden transition-all duration-300 rounded-sm">
@@ -624,7 +667,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card', onDelete }: Sto
               <span className="hidden sm:inline text-cyan-900">|</span>
               <span className="whitespace-nowrap">{totalWords} WORDS</span>
               <span className="hidden sm:inline text-cyan-900">|</span>
-              <span className="whitespace-nowrap">{story.scenes.length} SCENES</span>
+              <span className="whitespace-nowrap">{sceneCount} SCENES</span>
             </div>
           </div>
           <div className="flex items-center pl-9 sm:pl-0 shrink-0">
@@ -840,10 +883,10 @@ export function StoryCard({ story, onRefresh, viewMode = 'card', onDelete }: Sto
                       variant="outline" 
                       size="sm" 
                       onClick={() => onDelete?.(story)} 
-                      className={`bg-red-950/30 hover:bg-red-900/50 text-red-500 border border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.2)] hover:shadow-[0_0_15px_rgba(239,68,68,0.4)] transition-all font-mono uppercase rounded-none w-full ${story.status === 'failed' || story.scenes.some(s => s.image_status === 'failed') ? 'animate-pulse hover:animate-none' : ''}`}
+                      className={`bg-red-950/30 hover:bg-red-900/50 text-red-500 border border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.2)] hover:shadow-[0_0_15px_rgba(239,68,68,0.4)] transition-all font-mono uppercase rounded-none w-full ${story.status === 'failed' || localScenes.some(s => s.image_status === 'failed') ? 'animate-pulse hover:animate-none' : ''}`}
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
-                      {story.status === 'failed' || story.status === 'generating' || story.scenes.some(s => s.image_status === 'failed' || s.image_status === 'generating') ? 'CANCEL_&_DELETE' : 'SYS_DELETE'}
+                      {story.status === 'failed' || story.status === 'generating' || localScenes.some(s => s.image_status === 'failed' || s.image_status === 'generating') ? 'CANCEL_&_DELETE' : 'SYS_DELETE'}
                     </Button>
                   </div>
                 </TooltipTrigger>
@@ -879,7 +922,15 @@ export function StoryCard({ story, onRefresh, viewMode = 'card', onDelete }: Sto
             </div>
           )}
 
-          {story.scenes.length === 0 ? (
+          {isLoadingScenes && localScenes.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 px-4 bg-black rounded-none border border-dashed border-cyan-800 shadow-[0_0_15px_rgba(6,182,212,0.1)]">
+              <Loader2 className="h-8 w-8 animate-spin text-cyan-500 mb-4 drop-shadow-[0_0_8px_rgba(6,182,212,0.8)]" />
+              <p className="text-lg font-mono uppercase tracking-widest text-cyan-400 drop-shadow-[0_0_5px_rgba(6,182,212,0.8)]">FETCHING_SCENES</p>
+              <p className="text-sm font-mono text-cyan-700 mt-2 text-center max-w-sm">
+                DOWNLOADING SCENE DATA FROM MAINFRAME...
+              </p>
+            </div>
+          ) : localScenes.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 px-4 bg-black rounded-none border border-dashed border-cyan-800 shadow-[0_0_15px_rgba(6,182,212,0.1)]">
               <Loader2 className="h-8 w-8 animate-spin text-cyan-500 mb-4 drop-shadow-[0_0_8px_rgba(6,182,212,0.8)]" />
               <p className="text-lg font-mono uppercase tracking-widest text-cyan-400 drop-shadow-[0_0_5px_rgba(6,182,212,0.8)]">INITIALIZING_NEURAL_NET</p>
@@ -889,7 +940,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card', onDelete }: Sto
             </div>
           ) : (
             <div className={viewMode === 'card' ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" : "space-y-6"}>
-              {story.scenes.map((scene) => (
+              {localScenes.map((scene) => (
                 <div key={scene.id} className={`flex ${viewMode === 'card' ? 'flex-col' : 'flex-col sm:flex-row'} bg-black rounded-none overflow-hidden border border-cyan-900/40 hover:border-cyan-500/60 shadow-[0_0_10px_rgba(6,182,212,0.05)] hover:shadow-[0_0_15px_rgba(6,182,212,0.2)] transition-all duration-300 group`}>
                   
                   {/* Image Section */}
