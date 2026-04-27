@@ -5,10 +5,11 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Loader as Loader2, CircleAlert as AlertCircle, CircleCheck as CheckCircle, Trash2, Youtube, BookOpen, Download, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react';
+import { Loader as Loader2, CircleAlert as AlertCircle, CircleCheck as CheckCircle, Trash2, Youtube, BookOpen, Download, ChevronDown, ChevronUp, RefreshCw, Edit2, Check, X } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -54,6 +55,9 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
   const [uploadChannel, setUploadChannel] = useState<'main' | 'sub'>('main');
   const [isExpanded, setIsExpanded] = useState(viewMode === 'card');
   const [regeneratingScenes, setRegeneratingScenes] = useState<Set<string>>(new Set());
+  const [editingSceneId, setEditingSceneId] = useState<string | null>(null);
+  const [editedScript, setEditedScript] = useState<string>('');
+  const [isSavingScript, setIsSavingScript] = useState(false);
   const supabase = createClient();
   const { toast } = useToast();
 
@@ -342,6 +346,32 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
         next.delete(sceneId);
         return next;
       });
+    }
+  };
+
+  const handleEditScript = (scene: Scene) => {
+    setEditingSceneId(scene.id);
+    setEditedScript(scene.script);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingSceneId(null);
+    setEditedScript('');
+  };
+
+  const handleSaveScript = async (sceneId: string) => {
+    try {
+      setIsSavingScript(true);
+      const { error } = await supabase.from('scenes').update({ script: editedScript }).eq('id', sceneId);
+      if (error) throw error;
+      
+      toast({ title: 'SYS_SUCCESS', description: 'SCRIPT UPDATED.' });
+      setEditingSceneId(null);
+      onRefresh();
+    } catch (error: any) {
+      toast({ title: 'ERR_FAILED', description: error.message || 'Failed to update script', variant: 'destructive' });
+    } finally {
+      setIsSavingScript(false);
     }
   };
 
@@ -842,12 +872,56 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
                   </div>
 
                   {/* Script Section */}
-                  <div className={`flex flex-col flex-1 p-5 ${viewMode === 'card' ? 'h-48' : ''} bg-black/50`}>
-                    <div className={`flex-1 overflow-y-auto pr-2 ${viewMode === 'card' ? 'text-sm' : 'text-base sm:text-sm md:text-base'} text-cyan-100/70 font-mono leading-relaxed space-y-3 custom-scrollbar`}>
-                      {scene.script.split('\n').map((paragraph, idx) => (
-                        paragraph.trim() ? <p key={idx} className="border-l-2 border-cyan-900/50 pl-3">{paragraph}</p> : null
-                      ))}
-                    </div>
+                  <div className={`flex flex-col flex-1 p-5 ${viewMode === 'card' ? 'h-48' : ''} bg-black/50 relative group/script`}>
+                    {editingSceneId === scene.id ? (
+                      <div className="flex flex-col h-full gap-3">
+                        <Textarea 
+                          value={editedScript}
+                          onChange={(e) => setEditedScript(e.target.value)}
+                          className="flex-1 min-h-[100px] bg-black/80 border-cyan-900/50 text-cyan-100/70 font-mono text-sm resize-none focus-visible:ring-cyan-500/50 focus-visible:border-cyan-500 rounded-none custom-scrollbar"
+                          disabled={isSavingScript}
+                        />
+                        <div className="flex justify-end gap-2 mt-auto">
+                          <Button variant="outline" size="sm" onClick={handleCancelEdit} disabled={isSavingScript} className="h-7 text-xs bg-black text-cyan-600 border-cyan-900 hover:text-cyan-400 hover:bg-cyan-950 rounded-none font-mono">
+                            <X className="w-3 h-3 mr-1" /> CANCEL
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={() => handleSaveScript(scene.id)} disabled={isSavingScript} className="h-7 text-xs bg-cyan-950/30 text-cyan-400 border-cyan-500 hover:text-cyan-300 hover:bg-cyan-900/50 hover:shadow-[0_0_10px_rgba(6,182,212,0.4)] rounded-none font-mono">
+                            {isSavingScript ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Check className="w-3 h-3 mr-1" />} 
+                            SAVE
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className={`flex-1 overflow-y-auto pr-2 ${viewMode === 'card' ? 'text-sm' : 'text-base sm:text-sm md:text-base'} text-cyan-100/70 font-mono leading-relaxed space-y-3 custom-scrollbar`}>
+                          {scene.script.split('\n').map((paragraph, idx) => (
+                            paragraph.trim() ? <p key={idx} className="border-l-2 border-cyan-900/50 pl-3">{paragraph}</p> : null
+                          ))}
+                        </div>
+                        <div className="absolute top-2 right-2 opacity-0 group-hover/script:opacity-100 transition-opacity duration-300">
+                          <TooltipProvider delayDuration={300}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    handleEditScript(scene);
+                                  }}
+                                  className="h-7 w-7 bg-black/80 border-cyan-900/80 text-cyan-600 hover:bg-cyan-950 hover:text-cyan-400 hover:border-cyan-500 rounded-none shadow-[0_0_10px_rgba(6,182,212,0.1)]"
+                                >
+                                  <Edit2 className="h-3 w-3" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent className="bg-black border border-cyan-500 text-cyan-400 font-mono text-xs rounded-none shadow-[0_0_10px_rgba(6,182,212,0.3)]">
+                                <p>EDIT_SCRIPT</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                      </>
+                    )}
                   </div>
 
                 </div>
