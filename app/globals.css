@@ -87,4 +87,29 @@
     background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
     color: #e2e8f0;
   }
+
+  /* Cyberpunk Scrollbar */
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(6, 182, 212, 0.6) rgba(0, 0, 0, 0.5);
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.5);
+    border-left: 1px solid rgba(6, 182, 212, 0.2);
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(6, 182, 212, 0.6);
+    border-radius: 0px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(6, 182, 212, 0.9);
+  }
 }
