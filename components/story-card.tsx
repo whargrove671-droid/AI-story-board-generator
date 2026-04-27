@@ -53,6 +53,7 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
   const [youtubeSubConnected, setYoutubeSubConnected] = useState(false);
   const [uploadChannel, setUploadChannel] = useState<'main' | 'sub'>('main');
   const [isExpanded, setIsExpanded] = useState(viewMode === 'card');
+  const [regeneratingScenes, setRegeneratingScenes] = useState<Set<string>>(new Set());
   const supabase = createClient();
   const { toast } = useToast();
 
@@ -311,6 +312,36 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
       });
     } finally {
       setIsRetrying(false);
+    }
+  };
+
+  const handleRegenerateImage = async (sceneId: string) => {
+    try {
+      setRegeneratingScenes(prev => {
+        const next = new Set(prev);
+        next.add(sceneId);
+        return next;
+      });
+      toast({ title: 'SYS_REGEN', description: 'INITIATING NEURAL RE-RENDER...' });
+      
+      const response = await fetch('/api/generate-images', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ storyId: story.id, sceneId }),
+      });
+      
+      if (!response.ok) throw new Error('FAILED TO COMMUNICATE WITH RENDER NODE');
+      
+      toast({ title: 'SYS_SUCCESS', description: 'SCENE RE-RENDER QUEUED.' });
+      onRefresh();
+    } catch (error: any) {
+      toast({ title: 'ERR_FAILED', description: error.message || 'Render failed', variant: 'destructive' });
+    } finally {
+      setRegeneratingScenes(prev => {
+        const next = new Set(prev);
+        next.delete(sceneId);
+        return next;
+      });
     }
   };
 
@@ -753,13 +784,38 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
                     </div>
                     
                     {scene.image_url ? (
-                      <Image
-                        src={scene.image_url}
-                        alt={`Scene ${scene.scene_number}`}
-                        fill
-                        className="object-cover transition-transform duration-700 group-hover:scale-105 opacity-90 group-hover:opacity-100"
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                      />
+                      <>
+                        <Image
+                          src={scene.image_url}
+                          alt={`Scene ${scene.scene_number}`}
+                          fill
+                          className="object-cover transition-transform duration-700 group-hover:scale-105 opacity-90 group-hover:opacity-100"
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        />
+                        <div className="absolute top-3 right-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          <TooltipProvider delayDuration={300}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    handleRegenerateImage(scene.id);
+                                  }}
+                                  disabled={regeneratingScenes.has(scene.id) || scene.image_status === 'generating'}
+                                  className="h-7 w-7 bg-black/80 border-cyan-500/50 text-cyan-400 hover:bg-cyan-950 hover:text-cyan-300 hover:border-cyan-400 rounded-none shadow-[0_0_10px_rgba(6,182,212,0.3)]"
+                                >
+                                  <RefreshCw className={`h-3 w-3 ${regeneratingScenes.has(scene.id) ? 'animate-spin' : ''}`} />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent className="bg-black border border-cyan-500 text-cyan-400 font-mono text-xs rounded-none shadow-[0_0_10px_rgba(6,182,212,0.3)]">
+                                <p>REGEN_IMAGE</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                      </>
                     ) : scene.image_status === 'generating' ? (
                       <div className="flex flex-col items-center justify-center p-6 text-center w-full h-full min-h-[200px] bg-fuchsia-950/20">
                         <Loader2 className="h-8 w-8 animate-spin mb-3 text-fuchsia-500 drop-shadow-[0_0_8px_rgba(192,38,211,0.8)]" />
