@@ -58,6 +58,9 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
   const [editingSceneId, setEditingSceneId] = useState<string | null>(null);
   const [editedScript, setEditedScript] = useState<string>('');
   const [isSavingScript, setIsSavingScript] = useState(false);
+  const [editingPromptSceneId, setEditingPromptSceneId] = useState<string | null>(null);
+  const [editedPrompt, setEditedPrompt] = useState<string>('');
+  const [isSavingPrompt, setIsSavingPrompt] = useState(false);
   const supabase = createClient();
   const { toast } = useToast();
 
@@ -346,6 +349,32 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
         next.delete(sceneId);
         return next;
       });
+    }
+  };
+
+  const handleEditPrompt = (scene: Scene) => {
+    setEditingPromptSceneId(scene.id);
+    setEditedPrompt(scene.image_prompt);
+  };
+
+  const handleCancelEditPrompt = () => {
+    setEditingPromptSceneId(null);
+    setEditedPrompt('');
+  };
+
+  const handleSavePrompt = async (sceneId: string) => {
+    try {
+      setIsSavingPrompt(true);
+      const { error } = await supabase.from('scenes').update({ image_prompt: editedPrompt }).eq('id', sceneId);
+      if (error) throw error;
+      
+      toast({ title: 'SYS_SUCCESS', description: 'IMAGE PROMPT UPDATED.' });
+      setEditingPromptSceneId(null);
+      onRefresh();
+    } catch (error: any) {
+      toast({ title: 'ERR_FAILED', description: error.message || 'Failed to update prompt', variant: 'destructive' });
+    } finally {
+      setIsSavingPrompt(false);
     }
   };
 
@@ -813,39 +842,81 @@ export function StoryCard({ story, onRefresh, viewMode = 'card' }: StoryCardProp
                       </Badge>
                     </div>
                     
-                    {scene.image_url ? (
-                      <>
-                        <Image
-                          src={scene.image_url}
-                          alt={`Scene ${scene.scene_number}`}
-                          fill
-                          className="object-cover transition-transform duration-700 group-hover:scale-105 opacity-90 group-hover:opacity-100"
-                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                        />
-                        <div className="absolute top-3 right-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                          <TooltipProvider delayDuration={300}>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  size="icon"
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    handleRegenerateImage(scene.id);
-                                  }}
-                                  disabled={regeneratingScenes.has(scene.id) || scene.image_status === 'generating'}
-                                  className="h-7 w-7 bg-black/80 border-cyan-500/50 text-cyan-400 hover:bg-cyan-950 hover:text-cyan-300 hover:border-cyan-400 rounded-none shadow-[0_0_10px_rgba(6,182,212,0.3)]"
-                                >
-                                  <RefreshCw className={`h-3 w-3 ${regeneratingScenes.has(scene.id) ? 'animate-spin' : ''}`} />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent className="bg-black border border-cyan-500 text-cyan-400 font-mono text-xs rounded-none shadow-[0_0_10px_rgba(6,182,212,0.3)]">
-                                <p>REGEN_IMAGE</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                    {editingPromptSceneId === scene.id && (
+                      <div className="absolute inset-0 z-20 flex flex-col bg-black/95 p-3 gap-2">
+                        <div className="text-xs font-mono text-cyan-400 mb-1 flex items-center gap-2">
+                          <Edit2 className="w-3 h-3" /> SYS.EDIT_PROMPT
                         </div>
-                      </>
+                        <Textarea 
+                          value={editedPrompt}
+                          onChange={(e) => setEditedPrompt(e.target.value)}
+                          className="flex-1 bg-black/80 border-cyan-900/50 text-cyan-100/70 font-mono text-xs resize-none focus-visible:ring-cyan-500/50 focus-visible:border-cyan-500 rounded-none custom-scrollbar p-2"
+                          disabled={isSavingPrompt}
+                        />
+                        <div className="flex justify-end gap-2 mt-auto">
+                          <Button variant="outline" size="sm" onClick={handleCancelEditPrompt} disabled={isSavingPrompt} className="h-7 text-xs bg-black text-cyan-600 border-cyan-900 hover:text-cyan-400 hover:bg-cyan-950 rounded-none font-mono">
+                            <X className="w-3 h-3 mr-1" /> CANCEL
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={() => handleSavePrompt(scene.id)} disabled={isSavingPrompt} className="h-7 text-xs bg-cyan-950/30 text-cyan-400 border-cyan-500 hover:text-cyan-300 hover:bg-cyan-900/50 hover:shadow-[0_0_10px_rgba(6,182,212,0.4)] rounded-none font-mono">
+                            {isSavingPrompt ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Check className="w-3 h-3 mr-1" />} 
+                            SAVE
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {!editingPromptSceneId && scene.image_status !== 'generating' && (
+                      <div className="absolute top-3 right-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex gap-2">
+                        <TooltipProvider delayDuration={300}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  handleEditPrompt(scene);
+                                }}
+                                className="h-7 w-7 bg-black/80 border-cyan-500/50 text-cyan-400 hover:bg-cyan-950 hover:text-cyan-300 hover:border-cyan-400 rounded-none shadow-[0_0_10px_rgba(6,182,212,0.3)]"
+                              >
+                                <Edit2 className="h-3 w-3" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent className="bg-black border border-cyan-500 text-cyan-400 font-mono text-xs rounded-none shadow-[0_0_10px_rgba(6,182,212,0.3)]">
+                              <p>EDIT_PROMPT</p>
+                            </TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  handleRegenerateImage(scene.id);
+                                }}
+                                disabled={regeneratingScenes.has(scene.id)}
+                                className="h-7 w-7 bg-black/80 border-cyan-500/50 text-cyan-400 hover:bg-cyan-950 hover:text-cyan-300 hover:border-cyan-400 rounded-none shadow-[0_0_10px_rgba(6,182,212,0.3)]"
+                              >
+                                <RefreshCw className={`h-3 w-3 ${regeneratingScenes.has(scene.id) ? 'animate-spin' : ''}`} />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent className="bg-black border border-cyan-500 text-cyan-400 font-mono text-xs rounded-none shadow-[0_0_10px_rgba(6,182,212,0.3)]">
+                              <p>REGEN_IMAGE</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                    )}
+                    
+                    {scene.image_url ? (
+                      <Image
+                        src={scene.image_url}
+                        alt={`Scene ${scene.scene_number}`}
+                        fill
+                        className="object-cover transition-transform duration-700 group-hover:scale-105 opacity-90 group-hover:opacity-100"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      />
                     ) : scene.image_status === 'generating' ? (
                       <div className="flex flex-col items-center justify-center p-6 text-center w-full h-full min-h-[200px] bg-fuchsia-950/20">
                         <Loader2 className="h-8 w-8 animate-spin mb-3 text-fuchsia-500 drop-shadow-[0_0_8px_rgba(192,38,211,0.8)]" />
