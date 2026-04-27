@@ -493,7 +493,7 @@ export default function DashboardPage() {
                 SYS.WARN: DATA_PURGE_REQUESTED
               </AlertDialogTitle>
               <AlertDialogDescription className="text-red-100/70 font-mono text-sm tracking-wider">
-                Are you sure you want to permanently delete the story <span className="text-cyan-400 uppercase">"{storyToDelete?.title}"</span>? This action cannot be undone.
+                Are you sure you want to permanently delete the story <span className="text-cyan-400 uppercase">&quot;{storyToDelete?.title}&quot;</span>? This action cannot be undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
