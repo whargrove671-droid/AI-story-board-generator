@@ -15,8 +15,13 @@ async function downloadFile(url: string, outputPath: string) {
 }
 
 export async function POST(request: NextRequest) {
+  let userId: string | null = null;
+  let currentChannelType = 'main';
+  let supabaseClient: any = null;
+
   try {
     const { storyId, channelType = 'main' } = await request.json();
+    currentChannelType = channelType;
     if (!storyId) return NextResponse.json({ error: 'storyId is required' }, { status: 400 });
 
     const supabase = createServerClient(
@@ -31,9 +36,11 @@ export async function POST(request: NextRequest) {
         },
       }
     );
+    supabaseClient = supabase;
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    userId = user.id;
 
     // Get YouTube refresh token
     const { data: settings } = await supabase
@@ -123,6 +130,21 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     console.error('YouTube upload error:', error);
+    
+    if (error.message === 'invalid_grant' || error?.response?.data?.error === 'invalid_grant') {
+      if (userId && supabaseClient) {
+        const updateData = currentChannelType === 'sub' 
+          ? { youtube_sub_refresh_token: null }
+          : { youtube_refresh_token: null };
+          
+        await supabaseClient
+          .from('user_settings')
+          .update(updateData)
+          .eq('user_id', userId);
+      }
+      return NextResponse.json({ error: `YouTube authorization expired. Please reconnect your ${currentChannelType} account.` }, { status: 401 });
+    }
+
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
