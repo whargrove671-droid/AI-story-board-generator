@@ -69,7 +69,8 @@ export async function POST(request: NextRequest) {
     // Setup YouTube client
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
-      process.env.GOOGLE_CLIENT_SECRET
+      process.env.GOOGLE_CLIENT_SECRET,
+      `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/youtube/callback`
     );
     oauth2Client.setCredentials({ refresh_token: refreshToken });
     const youtube = google.youtube({ version: 'v3', auth: oauth2Client });
