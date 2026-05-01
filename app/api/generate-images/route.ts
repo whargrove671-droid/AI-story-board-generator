@@ -3,7 +3,7 @@ import { createServerClient } from '@supabase/ssr';
 
 export async function POST(request: NextRequest) {
   try {
-    const { storyId, retryFailed } = await request.json();
+    const { storyId, retryFailed, sceneId } = await request.json();
 
     if (!storyId) {
       return NextResponse.json(
@@ -35,12 +35,18 @@ export async function POST(request: NextRequest) {
         .eq('image_status', 'failed');
     }
 
-    const { data: scenes, error: scenesError } = await supabase
+    let query = supabase
       .from('scenes')
       .select('*')
-      .eq('story_id', storyId)
-      .eq('image_status', 'pending')
-      .order('scene_number', { ascending: true });
+      .eq('story_id', storyId);
+
+    if (sceneId) {
+      query = query.eq('id', sceneId);
+    } else {
+      query = query.eq('image_status', 'pending');
+    }
+
+    const { data: scenes, error: scenesError } = await query.order('scene_number', { ascending: true });
 
     if (scenesError) {
       throw scenesError;
