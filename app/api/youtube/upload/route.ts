@@ -132,7 +132,8 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('YouTube upload error:', error);
     
-    if (error.message === 'invalid_grant' || error?.response?.data?.error === 'invalid_grant') {
+    const errorMessage = error.message || error?.response?.data?.error;
+    if (errorMessage === 'invalid_grant' || errorMessage === 'unauthorized_client') {
       if (userId && supabaseClient) {
         const updateData = currentChannelType === 'sub' 
           ? { youtube_sub_refresh_token: null }
@@ -143,7 +144,7 @@ export async function POST(request: NextRequest) {
           .update(updateData)
           .eq('user_id', userId);
       }
-      return NextResponse.json({ error: `YouTube authorization expired. Please reconnect your ${currentChannelType} account.` }, { status: 401 });
+      return NextResponse.json({ error: `YouTube authorization failed or expired. Please reconnect your ${currentChannelType} account.` }, { status: 401 });
     }
 
     return NextResponse.json({ error: error.message }, { status: 500 });
