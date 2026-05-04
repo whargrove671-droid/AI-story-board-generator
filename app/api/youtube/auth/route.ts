@@ -14,9 +14,10 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const channel = searchParams.get('channel') || 'main'; // 'main' or 'sub'
 
-    // Generate a url that asks permissions for YouTube upload
+    // Generate a url that asks permissions for YouTube upload and readonly to verify channel identity
     const scopes = [
-      'https://www.googleapis.com/auth/youtube.upload'
+      'https://www.googleapis.com/auth/youtube.upload',
+      'https://www.googleapis.com/auth/youtube.readonly'
     ];
 
     const url = oauth2Client.generateAuthUrl({
