@@ -718,17 +718,17 @@ export function StoryCard({ story, onRefresh, viewMode = 'card', onDelete }: Sto
                           id={`yt-upload-${story.id}`} 
                           checked={autoUpload} 
                           onCheckedChange={setAutoUpload}
-                          disabled={isGeneratingVideo || isUploadingYouTube || !!story.youtube_url}
+                          disabled={isGeneratingVideo || isUploadingYouTube}
                           className="scale-75 data-[state=checked]:bg-fuchsia-600 data-[state=unchecked]:bg-zinc-800 border-cyan-900"
                         />
-                        <Label htmlFor={`yt-upload-${story.id}`} className={`text-xs font-mono cursor-pointer flex items-center gap-1 select-none pr-1 uppercase ${story.youtube_url ? 'text-zinc-600' : 'text-cyan-400'}`}>
-                          <Youtube className={`w-3.5 h-3.5 ${story.youtube_url ? 'text-zinc-600' : 'text-red-500'}`} />
+                        <Label htmlFor={`yt-upload-${story.id}`} className="text-xs font-mono cursor-pointer flex items-center gap-1 select-none pr-1 uppercase text-cyan-400">
+                          <Youtube className="w-3.5 h-3.5 text-red-500" />
                           AUTO
                         </Label>
                       </div>
                     </TooltipTrigger>
                     <TooltipContent className="bg-black border border-cyan-500 text-cyan-400 font-mono text-xs rounded-none shadow-[0_0_10px_rgba(6,182,212,0.3)]">
-                      <p>{story.youtube_url ? 'ALREADY UPLOADED TO YOUTUBE' : 'AUTOMATICALLY UPLOAD TO YOUTUBE WHEN GENERATION COMPLETES'}</p>
+                      <p>{story.youtube_url ? 'AUTOMATICALLY REUPLOAD TO YOUTUBE WHEN RE-GENERATION COMPLETES' : 'AUTOMATICALLY UPLOAD TO YOUTUBE WHEN GENERATION COMPLETES'}</p>
                     </TooltipContent>
                   </Tooltip>
                   
@@ -741,16 +741,16 @@ export function StoryCard({ story, onRefresh, viewMode = 'card', onDelete }: Sto
                           variant="ghost" 
                           size="sm" 
                           onClick={handleUploadYouTube} 
-                          disabled={isUploadingYouTube || !story.video_url || !!story.youtube_url}
+                          disabled={isUploadingYouTube || !story.video_url}
                           className={`h-7 text-xs bg-red-950/30 hover:bg-red-900/50 text-red-400 hover:text-red-300 border border-red-900/50 hover:border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.1)] transition-all font-mono uppercase rounded-none ${!isUploadingYouTube && story.video_url && !story.youtube_url ? 'animate-pulse hover:animate-none' : ''}`}
                         >
                           {isUploadingYouTube ? <Loader2 className="h-3 w-3 animate-spin mr-1.5" /> : <Youtube className="h-3 w-3 mr-1.5" />}
-                          {isUploadingYouTube ? 'UPLOADING...' : (story.youtube_url ? 'UPLOADED' : 'UPLOAD_YT')}
+                          {isUploadingYouTube ? 'UPLOADING...' : (story.youtube_url ? 'REUPLOAD_YT' : 'UPLOAD_YT')}
                         </Button>
                       </div>
                     </TooltipTrigger>
                     <TooltipContent className="bg-black border border-cyan-500 text-cyan-400 font-mono text-xs rounded-none shadow-[0_0_10px_rgba(6,182,212,0.3)]">
-                      <p>{!story.video_url ? 'SYS: VIDEO MUST BE COMPILED FIRST' : story.youtube_url ? 'SYS: ALREADY UPLOADED TO YOUTUBE' : 'SYS: MANUALLY UPLOAD TO YOUTUBE'}</p>
+                      <p>{!story.video_url ? 'SYS: VIDEO MUST BE COMPILED FIRST' : story.youtube_url ? 'SYS: MANUALLY REUPLOAD TO YOUTUBE' : 'SYS: MANUALLY UPLOAD TO YOUTUBE'}</p>
                     </TooltipContent>
                   </Tooltip>
                 </div>
