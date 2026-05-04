@@ -21,7 +21,21 @@ export async function GET(request: NextRequest) {
     
     // We strictly need the refresh token to upload videos in the background later
     if (!tokens.refresh_token) {
-      console.warn("No refresh token received from Google. You may need to revoke app access in Google settings and try again.");
+      console.warn("No refresh token received from Google.");
+      return new NextResponse(
+        `<html><body>
+          <h2>Authentication Error</h2>
+          <p>Google did not provide a refresh token. This usually happens if you've already authorized the app previously.</p>
+          <p>To fix this and select your Sub Channel:</p>
+          <ol>
+            <li>Go to <a href="https://myaccount.google.com/permissions" target="_blank">Google Account Permissions</a></li>
+            <li>Find this app in the list and click "Remove Access"</li>
+            <li>Come back to the dashboard and try connecting your Sub Channel again.</li>
+          </ol>
+          <a href="/dashboard">Return to Dashboard</a>
+        </body></html>`,
+        { status: 400, headers: { 'Content-Type': 'text/html' } }
+      );
     }
 
     // Save refresh token to user_settings
