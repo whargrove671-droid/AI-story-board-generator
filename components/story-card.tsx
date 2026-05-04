@@ -39,9 +39,11 @@ interface StoryCardProps {
   onRefresh: () => void;
   viewMode?: 'card' | 'list';
   onDelete?: (story: Story) => void;
+  youtubeMainConnected?: boolean;
+  youtubeSubConnected?: boolean;
 }
 
-export function StoryCard({ story, onRefresh, viewMode = 'card', onDelete }: StoryCardProps) {
+export function StoryCard({ story, onRefresh, viewMode = 'card', onDelete, youtubeMainConnected = false, youtubeSubConnected = false }: StoryCardProps) {
   const [isRetrying, setIsRetrying] = useState(false);
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
   const [isUploadingYouTube, setIsUploadingYouTube] = useState(false);
@@ -50,8 +52,6 @@ export function StoryCard({ story, onRefresh, viewMode = 'card', onDelete }: Sto
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [downloadCompleted, setDownloadCompleted] = useState(false);
   const [autoUpload, setAutoUpload] = useState(false);
-  const [youtubeMainConnected, setYoutubeMainConnected] = useState(false);
-  const [youtubeSubConnected, setYoutubeSubConnected] = useState(false);
   const [uploadChannel, setUploadChannel] = useState<'main' | 'sub'>('main');
   const [isExpanded, setIsExpanded] = useState(viewMode === 'card');
   const [regeneratingScenes, setRegeneratingScenes] = useState<Set<string>>(new Set());
@@ -102,23 +102,11 @@ export function StoryCard({ story, onRefresh, viewMode = 'card', onDelete }: Sto
   }, [viewMode]);
 
   useEffect(() => {
-    // Check if user has YouTube connected so we can show the switch
-    const checkYt = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const { data } = await supabase.from('user_settings').select('youtube_refresh_token, youtube_sub_refresh_token').eq('user_id', user.id).single();
-      if (data) {
-        if (data.youtube_refresh_token) setYoutubeMainConnected(true);
-        if (data.youtube_sub_refresh_token) setYoutubeSubConnected(true);
-        
-        // If main is not connected but sub is, default to sub
-        if (!data.youtube_refresh_token && data.youtube_sub_refresh_token) {
-          setUploadChannel('sub');
-        }
-      }
-    };
-    checkYt();
-  }, [supabase]);
+    // If main is not connected but sub is, default to sub
+    if (!youtubeMainConnected && youtubeSubConnected) {
+      setUploadChannel('sub');
+    }
+  }, [youtubeMainConnected, youtubeSubConnected]);
 
   useEffect(() => {
     if (story.scenes) {
