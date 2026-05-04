@@ -304,18 +304,26 @@ export default function DashboardPage() {
                   CONNECT MAIN YT
                 </Button>
               ) : (
-                <div className="text-xs font-mono tracking-widest text-emerald-400 bg-emerald-950/30 px-3 py-1.5 rounded-none border border-emerald-900/50 shadow-[0_0_10px_rgba(16,185,129,0.2)] uppercase flex items-center h-9">
-                  MAIN YT LINKED
-                </div>
+                <button 
+                  onClick={() => window.location.href = '/api/youtube/auth?channel=main'}
+                  className="text-xs font-mono tracking-widest text-emerald-400 bg-emerald-950/30 hover:bg-cyan-950/50 hover:text-cyan-400 px-3 py-1.5 rounded-none border border-emerald-900/50 hover:border-cyan-500 shadow-[0_0_10px_rgba(16,185,129,0.2)] uppercase flex items-center h-9 group transition-all"
+                >
+                  <span className="group-hover:hidden">MAIN YT LINKED</span>
+                  <span className="hidden group-hover:block">RECONNECT MAIN</span>
+                </button>
               )}
               {!youtubeSubConnected ? (
                 <Button variant="outline" className="h-9 text-xs bg-red-950/30 hover:bg-red-900/50 text-red-400 hover:text-red-300 border border-red-900/50 hover:border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.1)] transition-all font-mono uppercase rounded-none animate-pulse hover:animate-none" onClick={() => window.location.href = '/api/youtube/auth?channel=sub'}>
                   CONNECT SUB YT
                 </Button>
               ) : (
-                <div className="text-xs font-mono tracking-widest text-emerald-400 bg-emerald-950/30 px-3 py-1.5 rounded-none border border-emerald-900/50 shadow-[0_0_10px_rgba(16,185,129,0.2)] uppercase flex items-center h-9">
-                  SUB YT LINKED
-                </div>
+                <button 
+                  onClick={() => window.location.href = '/api/youtube/auth?channel=sub'}
+                  className="text-xs font-mono tracking-widest text-emerald-400 bg-emerald-950/30 hover:bg-cyan-950/50 hover:text-cyan-400 px-3 py-1.5 rounded-none border border-emerald-900/50 hover:border-cyan-500 shadow-[0_0_10px_rgba(16,185,129,0.2)] uppercase flex items-center h-9 group transition-all"
+                >
+                  <span className="group-hover:hidden">SUB YT LINKED</span>
+                  <span className="hidden group-hover:block">RECONNECT SUB</span>
+                </button>
               )}
             </div>
             <Button variant="outline" onClick={handleLogout} className="h-9 text-xs bg-black text-cyan-600 border border-cyan-900 hover:text-cyan-400 hover:bg-cyan-950 rounded-none font-mono uppercase">
