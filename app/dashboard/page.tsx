@@ -475,7 +475,7 @@ export default function DashboardPage() {
               <div className="space-y-6">
                 {stories.map((story) => (
                   <ErrorBoundary key={story.id}>
-                    <StoryCard story={story} onRefresh={loadStories} viewMode={viewMode} onDelete={setStoryToDelete} />
+                    <StoryCard story={story} onRefresh={loadStories} viewMode={viewMode} onDelete={setStoryToDelete} youtubeMainConnected={youtubeMainConnected} youtubeSubConnected={youtubeSubConnected} />
                   </ErrorBoundary>
                 ))}
               </div>
