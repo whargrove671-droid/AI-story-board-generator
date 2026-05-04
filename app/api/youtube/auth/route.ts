@@ -24,8 +24,8 @@ export async function GET(request: NextRequest) {
       access_type: 'offline',
       // If you only need one scope you can pass it as a string
       scope: scopes,
-      // Force prompt to ensure we always get a refresh token
-      prompt: 'consent',
+      // Force prompt to ensure we always get a refresh token and force the user to pick an account
+      prompt: 'consent select_account',
       // Pass channel type as state to remember it in the callback
       state: channel,
     });
