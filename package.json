@@ -87,7 +87,7 @@
     "jszip": "^3.10.1",
     "lucide-react": "^0.446.0",
     "minimatch": "^9.0.8",
-    "next": "15.5.15",
+    "next": "15.5.18",
     "next-themes": "^0.3.0",
     "openai": "^6.33.0",
     "postcss": "^8.5.10",
