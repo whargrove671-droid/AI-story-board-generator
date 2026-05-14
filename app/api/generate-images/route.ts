@@ -168,9 +168,17 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const { count } = await supabase
+      .from('scenes')
+      .select('*', { count: 'exact', head: true })
+      .eq('story_id', storyId)
+      .eq('image_status', 'pending');
+
     return NextResponse.json({
       success: true,
       processedScenes: scenes.length,
+      morePending: (count || 0) > 0,
+      totalPending: count || 0,
     });
   } catch (error: any) {
     console.error('Error generating images:', error);

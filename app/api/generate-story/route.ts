@@ -130,8 +130,7 @@ ${imagePromptRule}
       console.error(`Expected ${storyLength} scenes, got:`, scenes.length);
     }
 
-    for (let i = 0; i < scenes.length && i < storyLength; i++) {
-      const scene = scenes[i];
+    const scenesToInsert = scenes.slice(0, storyLength).map((scene, i) => {
       const imagePrompt = typeof scene?.imagePrompt === 'string' ? scene.imagePrompt.trim() : '';
       const imageStatus = imagePrompt ? 'pending' : 'skipped';
 
@@ -140,17 +139,20 @@ ${imagePromptRule}
         scriptContent = `[Scene ${i + 1} narration missing. AI generated an empty response.]`;
       }
 
-      const { error } = await supabase.from('scenes').insert({
+      return {
         story_id: storyId,
         scene_number: i + 1,
         script: scriptContent,
         image_prompt: imagePrompt,
         image_status: imageStatus,
-      });
+      };
+    });
 
-      if (error) {
-        console.error('Error inserting scene:', error);
-      }
+    const { error: insertError } = await supabase.from('scenes').insert(scenesToInsert);
+
+    if (insertError) {
+      console.error('Error inserting scenes:', insertError);
+      throw new Error(`Failed to save scenes: ${insertError.message}`);
     }
 
     await supabase
