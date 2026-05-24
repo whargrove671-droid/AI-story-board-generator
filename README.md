@@ -1,5 +1,7 @@
 # AI Story Generator
 
+Due to other commitmernts i'll not be as active as i would like with this project.
+
 A private Next.js web application that generates AI-powered stories with stunning images. Enter a story idea, and watch as AI creates a complete 5-scene narrative with custom images for each scene.
 
 ## Features
