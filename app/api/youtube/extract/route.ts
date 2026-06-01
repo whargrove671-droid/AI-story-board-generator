@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
 
     // 1. Extract YouTube video ID
     let videoId = youtubeUrl;
-    const ytRegex = /(?:youtube\.com.*(?:\?|&)v=|youtu\.be\/|youtube\.com\/(?:embed|v|shorts)\/)([\w-]{11})/;
+    const ytRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|shorts)\/|[^#&?]*[?&]v=)|youtu\.be\/)([\w-]{11})/;
     const match = youtubeUrl.match(ytRegex);
 
     if (match && match[1]) {
