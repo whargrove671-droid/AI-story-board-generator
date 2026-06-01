@@ -21,6 +21,14 @@ async function downloadFile(url: string, outputPath: string) {
   fs.writeFileSync(outputPath, new Uint8Array(arrayBuffer));
 }
 
+function escapeFfmpegDrawtextPath(filePath: string): string {
+  // Normalize Windows separators and escape ffmpeg filter special characters.
+  // Escape backslash first, then other special characters.
+  return filePath
+    .replace(/\\/g, '/')
+    .replace(/([:\\'\\[\\],;=])/g, '\\$1');
+}
+
 // Helper function to create a video segment from image and audio
 function createSegment(imagePath: string, audioPath: string, text: string, outputPath: string, tmpDir: string, index: number): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -41,8 +49,8 @@ function createSegment(imagePath: string, audioPath: string, text: string, outpu
     const textPath = path.join(tmpDir, textFileName);
     fs.writeFileSync(textPath, wrappedText, 'utf8');
 
-    // For ffmpeg drawtext textfile on Windows, we need to escape the colon and use forward slashes
-    const safeTextPath = textPath.replace(/\\/g, '/').replace(/:/g, '\\:');
+    // Build an ffmpeg-safe path for drawtext textfile
+    const safeTextPath = escapeFfmpegDrawtextPath(textPath);
 
     ffmpeg()
       .input(imagePath)
