@@ -34,3 +34,15 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# test and scratch files
+scratch.js
+test-*.js
+test_*.js
+
+# temp and audit files
+temp_*.txt
+vuln_*.txt
+npm_audit*.txt
+npm_audit*.json
+*_versions.txt
