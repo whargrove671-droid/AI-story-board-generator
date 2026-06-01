@@ -14,6 +14,10 @@ async function downloadFile(url: string, outputPath: string) {
   fs.writeFileSync(outputPath, new Uint8Array(arrayBuffer));
 }
 
+function sanitizePathComponent(input: string): string {
+  return input.replace(/[^a-zA-Z0-9_-]/g, '');
+}
+
 export async function POST(request: NextRequest) {
   let userId: string | null = null;
   let currentChannelType = 'main';
@@ -77,7 +81,11 @@ export async function POST(request: NextRequest) {
 
     // Download video locally for upload
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'yt-upload-'));
-    const videoPath = path.join(tmpDir, `video_${storyId}.mp4`);
+    const safeStoryId = sanitizePathComponent(String(storyId));
+    if (!safeStoryId) {
+      return NextResponse.json({ error: 'Invalid storyId' }, { status: 400 });
+    }
+    const videoPath = path.join(tmpDir, `video_${safeStoryId}.mp4`);
     
     console.log('Downloading video for YouTube upload...');
     await downloadFile(story.video_url, videoPath);
