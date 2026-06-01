@@ -1,8 +1,0 @@
-node_modules/chokidar/node_modules/glob-parent: 5.1.2
-node_modules/fast-glob/node_modules/glob-parent: 5.1.2
-node_modules/glob: 7.1.7
-node_modules/glob-parent: 6.0.2
-node_modules/globals: 13.24.0
-node_modules/globalthis: 1.0.4
-node_modules/globby: 11.1.0
-node_modules/sucrase/node_modules/glob: 10.4.5
