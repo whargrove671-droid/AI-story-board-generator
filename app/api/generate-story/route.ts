@@ -127,7 +127,7 @@ ${imagePromptRule}
     }
 
     if (scenes.length !== storyLength) {
-      console.error(`Expected ${storyLength} scenes, got:`, scenes.length);
+      console.error('Expected %s scenes, got: %s', storyLength, scenes.length);
     }
 
     const scenesToInsert = scenes.slice(0, storyLength).map((scene, i) => {
