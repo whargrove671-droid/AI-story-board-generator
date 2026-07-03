@@ -46,17 +46,52 @@ export async function POST(request: NextRequest) {
     }
 
     // 1. Extract YouTube video ID
+    // Use URL-parsing instead of a complex regex to avoid ReDoS (polynomial backtracking)
+    // on adversarial inputs (CodeQL: js/polynomial-redos).
     let videoId = youtubeUrl;
-    const ytRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|shorts)\/|[^#&?]*[?&]v=)|youtu\.be\/)([\w-]{11})/;
-    const match = youtubeUrl.match(ytRegex);
 
-    if (match && match[1]) {
-      videoId = match[1];
+    const extractVideoId = (rawUrl: string): string | null => {
+      let parsed: URL;
+      try {
+        // Normalise: if no scheme is present, prepend one so URL() can parse it.
+        const withScheme = /^https?:\/\//i.test(rawUrl) ? rawUrl : `https://${rawUrl}`;
+        parsed = new URL(withScheme);
+      } catch {
+        return null;
+      }
+
+      const { hostname, pathname, searchParams } = parsed;
+      const host = hostname.replace(/^www\./, '');
+
+      // youtu.be/<id>
+      if (host === 'youtu.be') {
+        const id = pathname.slice(1, 12); // take exactly 11 chars
+        if (/^[\w-]{11}$/.test(id)) return id;
+      }
+
+      if (host === 'youtube.com' || host === 'youtube-nocookie.com') {
+        // ?v=<id>
+        const vParam = searchParams.get('v');
+        if (vParam && /^[\w-]{11}$/.test(vParam)) return vParam;
+
+        // /embed/<id>, /v/<id>, /shorts/<id>, /live/<id>
+        // Use a simple, linear regex only on the pathname (no user content repeated quantifiers).
+        const pathMatch = /^\/(?:embed|v|shorts|live)\/([\w-]{11})/.exec(pathname);
+        if (pathMatch) return pathMatch[1];
+      }
+
+      return null;
+    };
+
+    const extracted = extractVideoId(youtubeUrl);
+    if (extracted) {
+      videoId = extracted;
     } else {
-      // Fallback: match any 11-character alphanumeric string with dashes/underscores
-      const fallbackMatch = youtubeUrl.match(/[\w-]{11}/);
-      if (fallbackMatch && fallbackMatch[0]) {
-        videoId = fallbackMatch[0];
+      // Last-resort: look for a bare 11-char word-boundary token that isn't part
+      // of a longer word.  Linear scan — no nested quantifiers.
+      const fallbackMatch = /(?:^|[/?&=])([\w-]{11})(?:[/?&]|$)/.exec(youtubeUrl);
+      if (fallbackMatch?.[1]) {
+        videoId = fallbackMatch[1];
       }
     }
 
