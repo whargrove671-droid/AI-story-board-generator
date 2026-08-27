@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { google } from 'googleapis';
-import { createServerClient } from '@supabase/ssr';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
+import { YouTubeUploadSchema } from '@/lib/validations';
+import { getAuthenticatedUser, verifyStoryOwnership, validateMediaUrl } from '@/lib/auth-helpers';
 
-// Helper to download the video locally
+// Helper to download the video locally with SSRF protection
 async function downloadFile(url: string, outputPath: string) {
+  if (!validateMediaUrl(url)) {
+    throw new Error(`Invalid or disallowed video URL: ${url}`);
+  }
+
   const response = await fetch(url);
   if (!response.ok) throw new Error(`Failed to fetch ${url}: ${response.statusText}`);
   
@@ -20,33 +25,45 @@ function sanitizePathComponent(input: string): string {
 
 export async function POST(request: NextRequest) {
   let userId: string | null = null;
-  let currentChannelType = 'main';
+  let currentChannelType: 'main' | 'sub' = 'main';
   let supabaseClient: any = null;
+  let tmpDir: string | null = null;
 
   try {
-    const { storyId, channelType = 'main' } = await request.json();
-    currentChannelType = channelType;
-    if (!storyId) return NextResponse.json({ error: 'storyId is required' }, { status: 400 });
-
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return request.cookies.getAll();
-          },
-          setAll() {},
-        },
-      }
-    );
+    // 1. Authenticate user
+    const { supabase, user } = await getAuthenticatedUser(request);
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    userId = user.id;
     supabaseClient = supabase;
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    userId = user.id;
+    // 2. Validate input
+    let body: any;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON payload' }, { status: 400 });
+    }
 
-    // Get YouTube refresh token
+    const validation = YouTubeUploadSchema.safeParse(body);
+    if (!validation.success) {
+      return NextResponse.json(
+        { error: validation.error.errors[0]?.message || 'Validation error' },
+        { status: 400 }
+      );
+    }
+
+    const { storyId, channelType } = validation.data;
+    currentChannelType = channelType;
+
+    // 3. Authorize story ownership (IDOR check)
+    const story = await verifyStoryOwnership(supabase, storyId, user.id);
+    if (!story || !story.video_url) {
+      return NextResponse.json({ error: 'Story or video not found, or unauthorized' }, { status: 404 });
+    }
+
+    // 4. Get YouTube refresh token
     const { data: settings } = await supabase
       .from('user_settings')
       .select('youtube_refresh_token, youtube_sub_refresh_token')
@@ -59,17 +76,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: `YouTube ${channelType} account not connected` }, { status: 400 });
     }
 
-    // Get Story Data
-    const { data: story } = await supabase
-      .from('stories')
-      .select('*, scenes(*)')
-      .eq('id', storyId)
-      .single();
-
-    if (!story || !story.video_url) {
-      return NextResponse.json({ error: 'Story or video not found' }, { status: 404 });
-    }
-
     // Setup YouTube client
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
@@ -80,18 +86,15 @@ export async function POST(request: NextRequest) {
     const youtube = google.youtube({ version: 'v3', auth: oauth2Client });
 
     // Download video locally for upload
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'yt-upload-'));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'yt-upload-'));
     const safeStoryId = sanitizePathComponent(String(storyId));
-    if (!safeStoryId) {
-      return NextResponse.json({ error: 'Invalid storyId' }, { status: 400 });
-    }
     const videoPath = path.join(tmpDir, `video_${safeStoryId}.mp4`);
     
     console.log('Downloading video for YouTube upload...');
     await downloadFile(story.video_url, videoPath);
 
     // Compile description from scenes
-    const sortedScenes = story.scenes.sort((a: any, b: any) => a.scene_number - b.scene_number);
+    const sortedScenes = (story.scenes || []).sort((a: any, b: any) => a.scene_number - b.scene_number);
     let fullScript = sortedScenes.map((s: any) => `Scene ${s.scene_number}:\n${s.script}`).join('\n\n');
 
     // YouTube Limits: Title (100 chars), Description (5000 chars)
@@ -115,7 +118,7 @@ export async function POST(request: NextRequest) {
           tags: ['AI', 'Storyboard', 'AI Video'],
         },
         status: {
-          privacyStatus: 'private', // User requested private first
+          privacyStatus: 'private',
         },
       },
       media: {
@@ -125,9 +128,6 @@ export async function POST(request: NextRequest) {
 
     const videoId = res.data.id;
     const youtubeUrl = `https://www.youtube.com/watch?v=${videoId}`;
-
-    // Clean up temp file
-    fs.rmSync(tmpDir, { recursive: true, force: true });
 
     // Update story in DB
     await supabase
@@ -155,6 +155,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: `YouTube authorization failed or expired. Please reconnect your ${currentChannelType} account.` }, { status: 401 });
     }
 
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message || 'Failed to upload video to YouTube' }, { status: 500 });
+  } finally {
+    if (tmpDir) {
+      try {
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+      } catch (e) {
+        console.warn('Failed to remove temp directory:', e);
+      }
+    }
   }
 }

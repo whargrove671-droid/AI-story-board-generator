@@ -1,13 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { google } from 'googleapis';
-import { createServerClient } from '@supabase/ssr';
+import { getAuthenticatedUser, verifyOAuthState } from '@/lib/auth-helpers';
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const code = searchParams.get('code');
+  const rawState = searchParams.get('state');
 
   if (!code) {
-    return NextResponse.json({ error: 'No code provided' }, { status: 400 });
+    return NextResponse.json({ error: 'No authorization code provided' }, { status: 400 });
+  }
+
+  const { supabase, user } = await getAuthenticatedUser(request);
+  if (!user) {
+    return NextResponse.redirect(new URL('/login', request.url));
+  }
+
+  // Validate signed state to prevent OAuth CSRF
+  const { valid, channel: state } = verifyOAuthState(rawState, user.id);
+  if (!valid) {
+    return new NextResponse(
+      `<html><body style="background:#000;color:#f00;font-family:monospace;padding:40px;">
+        <h2 style="color:#f55;">SYS.ERR: INVALID_OR_EXPIRED_OAUTH_STATE</h2>
+        <p style="color:#ccc;">The authentication session was invalid or has expired. Please try connecting your channel again from the dashboard.</p>
+        <br/>
+        <a href="/dashboard" style="color:#0ff;text-decoration:none;border:1px solid #0ff;padding:10px 20px;display:inline-block;margin-top:20px;">RETURN TO DASHBOARD</a>
+      </body></html>`,
+      { status: 400, headers: { 'Content-Type': 'text/html' } }
+    );
   }
 
   const oauth2Client = new google.auth.OAuth2(
@@ -19,48 +39,24 @@ export async function GET(request: NextRequest) {
   try {
     const { tokens } = await oauth2Client.getToken(code);
     
-    // We strictly need the refresh token to upload videos in the background later
     if (!tokens.refresh_token) {
       console.warn("No refresh token received from Google.");
       return new NextResponse(
-        `<html><body>
-          <h2>Authentication Error</h2>
-          <p>Google did not provide a refresh token. This usually happens if you've already authorized the app previously.</p>
-          <p>To fix this and select your Sub Channel:</p>
-          <ol>
-            <li>Go to <a href="https://myaccount.google.com/permissions" target="_blank">Google Account Permissions</a></li>
+        `<html><body style="background:#000;color:#f00;font-family:monospace;padding:40px;">
+          <h2 style="color:#f55;">Authentication Error</h2>
+          <p style="color:#ccc;">Google did not provide a refresh token. This usually happens if you've already authorized the app previously.</p>
+          <p style="color:#ccc;">To fix this and select your Sub Channel:</p>
+          <ol style="color:#ccc;">
+            <li>Go to <a href="https://myaccount.google.com/permissions" target="_blank" style="color:#0ff;">Google Account Permissions</a></li>
             <li>Find this app in the list and click "Remove Access"</li>
             <li>Come back to the dashboard and try connecting your Sub Channel again.</li>
           </ol>
-          <a href="/dashboard">Return to Dashboard</a>
+          <br/>
+          <a href="/dashboard" style="color:#0ff;text-decoration:none;border:1px solid #0ff;padding:10px 20px;display:inline-block;margin-top:20px;">RETURN TO DASHBOARD</a>
         </body></html>`,
         { status: 400, headers: { 'Content-Type': 'text/html' } }
       );
     }
-
-    // Save refresh token to user_settings
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return request.cookies.getAll();
-          },
-          setAll(cookiesToSet) {
-            // Read-only in this context
-          },
-        },
-      }
-    );
-
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const state = searchParams.get('state') || 'main';
 
     if (tokens.refresh_token) {
       oauth2Client.setCredentials(tokens);
@@ -76,7 +72,11 @@ export async function GET(request: NextRequest) {
         console.error("Failed to get new channel ID", e);
       }
 
-      const { data: existingSettings } = await supabase.from('user_settings').select('youtube_refresh_token, youtube_sub_refresh_token').eq('user_id', user.id).single();
+      const { data: existingSettings } = await supabase
+        .from('user_settings')
+        .select('youtube_refresh_token, youtube_sub_refresh_token')
+        .eq('user_id', user.id)
+        .single();
 
       if (newChannelId && existingSettings) {
         let compareToken: string | null = null;
@@ -127,10 +127,9 @@ export async function GET(request: NextRequest) {
       if (error) throw error;
     }
 
-    // Redirect back to dashboard
     return NextResponse.redirect(new URL('/dashboard', request.url));
   } catch (error: any) {
     console.error('Error exchanging token:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message || 'Failed to exchange token' }, { status: 500 });
   }
 }

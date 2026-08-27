@@ -1,59 +1,61 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
 import OpenAI from 'openai';
 import { YoutubeTranscript } from 'youtube-transcript';
+import { YouTubeExtractSchema } from '@/lib/validations';
+import { getAuthenticatedUser, verifyStoryOwnership } from '@/lib/auth-helpers';
 
 export async function POST(request: NextRequest) {
-  const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY || "dummy",
-  });
-
   let storyId: string | undefined;
 
   try {
-    const body = await request.json();
-    const youtubeUrl = body.youtubeUrl;
-    storyId = body.storyId;
-
-    if (!youtubeUrl || !storyId) {
-      return NextResponse.json(
-        { error: 'YouTube URL and story ID are required' },
-        { status: 400 }
-      );
-    }
-
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return request.cookies.getAll();
-          },
-          setAll() {
-            // No-op for API routes
-          },
-        },
-      }
-    );
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
+    // 1. Authenticate user
+    const { supabase, user } = await getAuthenticatedUser(request);
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // 2. Validate input
+    let body: any;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON payload' }, { status: 400 });
+    }
+
+    const validation = YouTubeExtractSchema.safeParse(body);
+    if (!validation.success) {
+      return NextResponse.json(
+        { error: validation.error.errors[0]?.message || 'Validation error' },
+        { status: 400 }
+      );
+    }
+
+    const { youtubeUrl, storyId: validatedStoryId } = validation.data;
+    storyId = validatedStoryId;
+
+    // 3. Authorize story ownership (IDOR check)
+    const story = await verifyStoryOwnership(supabase, storyId, user.id);
+    if (!story) {
+      return NextResponse.json({ error: 'Story not found or unauthorized' }, { status: 404 });
+    }
+
+    if (!process.env.OPENAI_API_KEY) {
+      return NextResponse.json(
+        { error: 'OpenAI API key is not configured on the server' },
+        { status: 500 }
+      );
+    }
+
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+
     // 1. Extract YouTube video ID
-    // Use URL-parsing instead of a complex regex to avoid ReDoS (polynomial backtracking)
-    // on adversarial inputs (CodeQL: js/polynomial-redos).
     let videoId = youtubeUrl;
 
     const extractVideoId = (rawUrl: string): string | null => {
       let parsed: URL;
       try {
-        // Normalise: if no scheme is present, prepend one so URL() can parse it.
         const withScheme = /^https?:\/\//i.test(rawUrl) ? rawUrl : `https://${rawUrl}`;
         parsed = new URL(withScheme);
       } catch {
@@ -63,19 +65,15 @@ export async function POST(request: NextRequest) {
       const { hostname, pathname, searchParams } = parsed;
       const host = hostname.replace(/^www\./, '');
 
-      // youtu.be/<id>
       if (host === 'youtu.be') {
-        const id = pathname.slice(1, 12); // take exactly 11 chars
+        const id = pathname.slice(1, 12);
         if (/^[\w-]{11}$/.test(id)) return id;
       }
 
       if (host === 'youtube.com' || host === 'youtube-nocookie.com') {
-        // ?v=<id>
         const vParam = searchParams.get('v');
         if (vParam && /^[\w-]{11}$/.test(vParam)) return vParam;
 
-        // /embed/<id>, /v/<id>, /shorts/<id>, /live/<id>
-        // Use a simple, linear regex only on the pathname (no user content repeated quantifiers).
         const pathMatch = /^\/(?:embed|v|shorts|live)\/([\w-]{11})/.exec(pathname);
         if (pathMatch) return pathMatch[1];
       }
@@ -87,8 +85,6 @@ export async function POST(request: NextRequest) {
     if (extracted) {
       videoId = extracted;
     } else {
-      // Last-resort: look for a bare 11-char word-boundary token that isn't part
-      // of a longer word.  Linear scan — no nested quantifiers.
       const fallbackMatch = /(?:^|[/?&=])([\w-]{11})(?:[/?&]|$)/.exec(youtubeUrl);
       if (fallbackMatch?.[1]) {
         videoId = fallbackMatch[1];
@@ -109,7 +105,6 @@ export async function POST(request: NextRequest) {
     }
 
     const fullTranscript = transcriptData.map((item: any) => item.text).join(' ');
-    console.log(`Successfully fetched transcript: ${fullTranscript.substring(0, 100)}...`);
 
     // 3. Determine Optimal Story Length
     const lengthPrompt = `You are a creative storytelling assistant.
@@ -129,7 +124,7 @@ ${fullTranscript.substring(0, 15000)}`;
     });
 
     const lengthResult = lengthCompletion.choices[0]?.message?.content;
-    let storyLength = 70; // default fallback
+    let storyLength = 70;
     try {
       const parsedLength = JSON.parse(lengthResult || '{}');
       if (typeof parsedLength.storyLength === 'number') {
@@ -138,8 +133,6 @@ ${fullTranscript.substring(0, 15000)}`;
     } catch (e) {
       console.error('Failed to parse optimal story length, defaulting to 70', e);
     }
-
-    console.log(`Optimal story length determined as: ${storyLength}`);
 
     // 4. Batch Generate Scenes
     const imageInterval = storyLength >= 30 ? 6 : 4;
@@ -197,12 +190,11 @@ ${imagePromptRule}
             temperature: 0.8,
             max_tokens: 16000,
           });
-          break; // success
+          break;
         } catch (err: any) {
           retries--;
           if (retries === 0) throw err;
           console.error(`OpenAI request failed, retrying... (${3 - retries}/3)`, err.message);
-          // Wait before retrying (exponential backoff: 2s, 4s)
           await new Promise(resolve => setTimeout(resolve, (3 - retries) * 2000));
         }
       }
@@ -234,6 +226,7 @@ ${imagePromptRule}
     }
 
     // 5. Save to Database
+    const scenesToInsert = [];
     for (let i = 0; i < allScenes.length && i < storyLength; i++) {
       const scene = allScenes[i];
       const imagePrompt = typeof scene?.imagePrompt === 'string' ? scene.imagePrompt.trim() : '';
@@ -244,17 +237,19 @@ ${imagePromptRule}
         scriptContent = `[Scene ${i + 1} narration missing. AI generated an empty response.]`;
       }
 
-      const { error } = await supabase.from('scenes').insert({
+      scenesToInsert.push({
         story_id: storyId,
         scene_number: i + 1,
         script: scriptContent,
         image_prompt: imagePrompt,
         image_status: imageStatus,
       });
+    }
 
-      if (error) {
-        console.error('Error inserting scene:', error);
-      }
+    const { error: insertError } = await supabase.from('scenes').insert(scenesToInsert);
+    if (insertError) {
+      console.error('Error inserting scenes:', insertError);
+      throw new Error(`Failed to save scenes: ${insertError.message}`);
     }
 
     await supabase
@@ -272,17 +267,8 @@ ${imagePromptRule}
     
     if (storyId) {
       try {
-        const supabaseFallback = createServerClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-          {
-            cookies: {
-              getAll() { return request.cookies.getAll(); },
-              setAll() {},
-            },
-          }
-        );
-        await supabaseFallback
+        const { supabase } = await getAuthenticatedUser(request);
+        await supabase
           .from('stories')
           .update({ status: 'failed' })
           .eq('id', storyId);

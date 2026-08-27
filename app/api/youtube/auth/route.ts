@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { google } from 'googleapis';
-
-// removed global oauth2Client to ensure it re-reads environment variables on each request
+import { getAuthenticatedUser, createOAuthState } from '@/lib/auth-helpers';
 
 export async function GET(request: NextRequest) {
   try {
+    const { user } = await getAuthenticatedUser(request);
+    if (!user) {
+      const loginUrl = new URL('/login', request.url);
+      return NextResponse.redirect(loginUrl);
+    }
+
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
@@ -12,28 +17,30 @@ export async function GET(request: NextRequest) {
     );
 
     const searchParams = request.nextUrl.searchParams;
-    const channel = searchParams.get('channel') || 'main'; // 'main' or 'sub'
+    const channelParam = searchParams.get('channel');
+    const channel: 'main' | 'sub' = channelParam === 'sub' ? 'sub' : 'main';
 
-    // Generate a url that asks permissions for YouTube upload and readonly to verify channel identity
     const scopes = [
       'https://www.googleapis.com/auth/youtube.upload',
       'https://www.googleapis.com/auth/youtube.readonly'
     ];
 
+    // Generate signed state parameter tied to user ID to prevent OAuth CSRF
+    const signedState = createOAuthState(user.id, channel);
+
     const url = oauth2Client.generateAuthUrl({
-      // 'online' (default) or 'offline' (gets refresh_token)
       access_type: 'offline',
-      // If you only need one scope you can pass it as a string
       scope: scopes,
-      // Force prompt to ensure we always get a refresh token and force the user to pick an account
       prompt: 'consent select_account',
-      // Pass channel type as state to remember it in the callback
-      state: channel,
+      state: signedState,
     });
 
     return NextResponse.redirect(url);
   } catch (error: any) {
     console.error('YouTube Auth Error:', error);
-    return NextResponse.json({ error: error.message || 'Failed to generate YouTube auth URL. Check your GOOGLE_CLIENT_ID in .env.local' }, { status: 500 });
+    return NextResponse.json(
+      { error: error.message || 'Failed to generate YouTube auth URL. Check your GOOGLE_CLIENT_ID configuration.' },
+      { status: 500 }
+    );
   }
 }
