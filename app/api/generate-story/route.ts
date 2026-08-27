@@ -1,49 +1,53 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
 import OpenAI from 'openai';
+import { GenerateStorySchema } from '@/lib/validations';
+import { getAuthenticatedUser, verifyStoryOwnership } from '@/lib/auth-helpers';
 
 export async function POST(request: NextRequest) {
-  const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY || "dummy",
-  });
-
   let storyId: string | undefined;
 
   try {
-    const body = await request.json();
-    const storyIdea = body.storyIdea;
-    const storyLength = body.storyLength || 5;
-    storyId = body.storyId;
+    // 1. Authenticate user
+    const { supabase, user } = await getAuthenticatedUser(request);
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-    if (!storyIdea || !storyId) {
+    // 2. Validate input
+    let body: any;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON payload' }, { status: 400 });
+    }
+
+    const validation = GenerateStorySchema.safeParse(body);
+    if (!validation.success) {
       return NextResponse.json(
-        { error: 'Story idea and story ID are required' },
+        { error: validation.error.errors[0]?.message || 'Validation error' },
         { status: 400 }
       );
     }
 
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return request.cookies.getAll();
-          },
-          setAll() {
-            // No-op for API routes
-          },
-        },
-      }
-    );
+    const { storyIdea, storyLength, storyId: validatedStoryId } = validation.data;
+    storyId = validatedStoryId;
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // 3. Authorize story ownership (IDOR check)
+    const story = await verifyStoryOwnership(supabase, storyId, user.id);
+    if (!story) {
+      return NextResponse.json({ error: 'Story not found or unauthorized' }, { status: 404 });
     }
+
+    if (!process.env.OPENAI_API_KEY) {
+      return NextResponse.json(
+        { error: 'OpenAI API key is not configured on the server' },
+        { status: 500 }
+      );
+    }
+
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
 
     const imageInterval = storyLength >= 120 ? 6 : 4;
     const batchSize = 10;
@@ -126,10 +130,6 @@ ${imagePromptRule}
       startIdx += batchScenes.length;
     }
 
-    if (scenes.length !== storyLength) {
-      console.error('Expected %s scenes, got: %s', storyLength, scenes.length);
-    }
-
     const scenesToInsert = scenes.slice(0, storyLength).map((scene, i) => {
       const imagePrompt = typeof scene?.imagePrompt === 'string' ? scene.imagePrompt.trim() : '';
       const imageStatus = imagePrompt ? 'pending' : 'skipped';
@@ -170,19 +170,8 @@ ${imagePromptRule}
     // Fallback to update story status to failed so it doesn't get stuck in generating
     if (storyId) {
       try {
-        const supabaseFallback = createServerClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-          {
-            cookies: {
-              getAll() {
-                return request.cookies.getAll();
-              },
-              setAll() {},
-            },
-          }
-        );
-        await supabaseFallback
+        const { supabase } = await getAuthenticatedUser(request);
+        await supabase
           .from('stories')
           .update({ status: 'failed' })
           .eq('id', storyId);
