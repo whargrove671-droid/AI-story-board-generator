@@ -6,6 +6,11 @@ export async function updateSession(request: NextRequest) {
     request,
   });
 
+  // Set standard security headers
+  supabaseResponse.headers.set('X-Content-Type-Options', 'nosniff');
+  supabaseResponse.headers.set('X-Frame-Options', 'DENY');
+  supabaseResponse.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+
   try {
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -34,17 +39,25 @@ export async function updateSession(request: NextRequest) {
       data: { user },
     } = await supabase.auth.getUser();
 
+    const pathname = request.nextUrl.pathname;
+
+    // For API routes, if unauthenticated, return 401 JSON instead of redirecting to /login
+    if (!user && pathname.startsWith('/api/')) {
+      // Exclude public / webhook endpoints if any in future
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     if (
       !user &&
-      !request.nextUrl.pathname.startsWith('/login') &&
-      !request.nextUrl.pathname.startsWith('/signup')
+      !pathname.startsWith('/login') &&
+      !pathname.startsWith('/signup')
     ) {
       const url = request.nextUrl.clone();
       url.pathname = '/login';
       return NextResponse.redirect(url);
     }
 
-    if (user && request.nextUrl.pathname === '/') {
+    if (user && pathname === '/') {
       const url = request.nextUrl.clone();
       url.pathname = '/dashboard';
       return NextResponse.redirect(url);

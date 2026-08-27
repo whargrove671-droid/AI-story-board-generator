@@ -1,19 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
 import ffmpeg from 'fluent-ffmpeg';
 import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
 import ffprobeInstaller from '@ffprobe-installer/ffprobe';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import { pipeline } from 'stream/promises';
+import { CompileVideoSchema } from '@/lib/validations';
+import { getAuthenticatedUser, verifyStoryOwnership, validateMediaUrl } from '@/lib/auth-helpers';
 
 // Set the ffmpeg/ffprobe paths
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 ffmpeg.setFfprobePath(ffprobeInstaller.path);
 
-// Helper function to download a file
+// Helper function to download a file with SSRF safety check
 async function downloadFile(url: string, outputPath: string) {
+  if (!validateMediaUrl(url)) {
+    throw new Error(`Invalid or disallowed media URL: ${url}`);
+  }
+
   const response = await fetch(url);
   if (!response.ok) throw new Error(`Failed to fetch ${url}: ${response.statusText}`);
   
@@ -22,8 +26,6 @@ async function downloadFile(url: string, outputPath: string) {
 }
 
 function escapeFfmpegDrawtextPath(filePath: string): string {
-  // Normalize Windows separators and escape ffmpeg filter special characters.
-  // Escape backslash first, then other special characters.
   return filePath
     .replace(/\\/g, '/')
     .replace(/([:\\'\\[\\],;=])/g, '\\$1');
@@ -98,35 +100,39 @@ function concatenateSegments(segmentPaths: string[], outputPath: string, tmpDir:
 }
 
 export async function POST(request: NextRequest) {
+  // 1. Authenticate user
+  const { supabase, user } = await getAuthenticatedUser(request);
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // 2. Validate input
+  let body: any;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON payload' }, { status: 400 });
+  }
+
+  const validation = CompileVideoSchema.safeParse(body);
+  if (!validation.success) {
+    return NextResponse.json(
+      { error: validation.error.errors[0]?.message || 'Validation error' },
+      { status: 400 }
+    );
+  }
+
+  const { storyId } = validation.data;
+
+  // 3. Authorize story ownership (IDOR check)
+  const story = await verifyStoryOwnership(supabase, storyId, user.id);
+  if (!story) {
+    return NextResponse.json({ error: 'Story not found or unauthorized' }, { status: 404 });
+  }
+
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'video-gen-'));
   
   try {
-    const { storyId } = await request.json();
-
-    if (!storyId) {
-      return NextResponse.json({ error: 'Story ID is required' }, { status: 400 });
-    }
-
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() { return request.cookies.getAll(); },
-          setAll() {},
-        },
-      }
-    );
-
-    // Get story
-    const { data: story, error: storyError } = await supabase
-      .from('stories')
-      .select('*')
-      .eq('id', storyId)
-      .single();
-
-    if (storyError) throw storyError;
-
     // Get scenes
     const { data: scenes, error: scenesError } = await supabase
       .from('scenes')
@@ -169,7 +175,6 @@ export async function POST(request: NextRequest) {
       let imgPath = downloadedImages.get(lastImageURL);
       if (!imgPath) {
         imgPath = path.join(tmpDir, `image_${i}.jpg`);
-        console.log(`Downloading image for scene ${scene.scene_number}...`);
         await downloadFile(lastImageURL, imgPath);
         downloadedImages.set(lastImageURL, imgPath);
       }
@@ -177,19 +182,14 @@ export async function POST(request: NextRequest) {
       const audioPath = path.join(tmpDir, `audio_${i}.mp3`);
       const outPath = path.join(tmpDir, `segment_${i}.mp4`);
 
-      console.log(`Downloading audio for scene ${scene.scene_number}...`);
       await downloadFile(scene.audio_url, audioPath);
-
-      console.log(`Rendering segment ${scene.scene_number}...`);
       await createSegment(imgPath, audioPath, scene.script, outPath, tmpDir, i);
       segmentPaths.push(outPath);
     }
 
     const finalVideoPath = path.join(tmpDir, `final_${storyId}.mp4`);
-    console.log(`Concatenating ${segmentPaths.length} segments...`);
     await concatenateSegments(segmentPaths, finalVideoPath, tmpDir);
 
-    console.log(`Uploading final video to Supabase Storage...`);
     const fileBuffer = fs.readFileSync(finalVideoPath);
     const fileName = `story_${storyId}_final.mp4`;
 
@@ -213,19 +213,25 @@ export async function POST(request: NextRequest) {
       })
       .eq('id', storyId);
 
-    // Cleanup
-    fs.rmSync(tmpDir, { recursive: true, force: true });
-
     return NextResponse.json({ success: true, videoUrl: publicUrlData.publicUrl });
   } catch (error: any) {
     console.error('Error compiling video:', error);
     
-    // Cleanup on error
-    try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch (e) {}
+    // Update story status back to completed/failed if compiling failed
+    try {
+      await supabase.from('stories').update({ status: 'failed' }).eq('id', storyId);
+    } catch {}
 
     return NextResponse.json(
       { error: error.message || 'Failed to compile video' },
       { status: 500 }
     );
+  } finally {
+    // Guaranteed cleanup on both success and error
+    try {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    } catch (e) {
+      console.warn('Failed to remove temp directory:', e);
+    }
   }
 }
