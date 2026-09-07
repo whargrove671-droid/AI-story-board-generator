@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GenerateImagesSchema } from '@/lib/validations';
 import { getAuthenticatedUser, verifyStoryOwnership, validateMediaUrl } from '@/lib/auth-helpers';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
   try {
@@ -8,6 +9,15 @@ export async function POST(request: NextRequest) {
     const { supabase, user } = await getAuthenticatedUser(request);
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Rate limit: max 10 image generation requests per minute per user
+    const rateLimit = checkRateLimit(`image-gen:${user.id}`, 10, 60 * 1000);
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        { error: 'Too many image generation requests. Please wait a minute before requesting more.' },
+        { status: 429 }
+      );
     }
 
     // 2. Validate input

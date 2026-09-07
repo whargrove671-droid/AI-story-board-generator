@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { GenerateStorySchema } from '@/lib/validations';
 import { getAuthenticatedUser, verifyStoryOwnership } from '@/lib/auth-helpers';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
   let storyId: string | undefined;
@@ -11,6 +12,15 @@ export async function POST(request: NextRequest) {
     const { supabase, user } = await getAuthenticatedUser(request);
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Rate limit: max 5 story generations per minute per user
+    const rateLimit = checkRateLimit(`story-gen:${user.id}`, 5, 60 * 1000);
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        { error: 'Too many story generation requests. Please wait a minute before trying again.' },
+        { status: 429 }
+      );
     }
 
     // 2. Validate input
