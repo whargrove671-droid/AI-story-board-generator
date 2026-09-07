@@ -6,24 +6,11 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import { CompileVideoSchema } from '@/lib/validations';
-import { getAuthenticatedUser, verifyStoryOwnership, validateMediaUrl } from '@/lib/auth-helpers';
+import { getAuthenticatedUser, verifyStoryOwnership, safeDownloadFile } from '@/lib/auth-helpers';
 
 // Set the ffmpeg/ffprobe paths
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 ffmpeg.setFfprobePath(ffprobeInstaller.path);
-
-// Helper function to download a file with SSRF safety check
-async function downloadFile(url: string, outputPath: string) {
-  if (!validateMediaUrl(url)) {
-    throw new Error(`Invalid or disallowed media URL: ${url}`);
-  }
-
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`Failed to fetch ${url}: ${response.statusText}`);
-  
-  const arrayBuffer = await response.arrayBuffer();
-  fs.writeFileSync(outputPath, new Uint8Array(arrayBuffer));
-}
 
 function escapeFfmpegDrawtextPath(filePath: string): string {
   return filePath
@@ -175,14 +162,14 @@ export async function POST(request: NextRequest) {
       let imgPath = downloadedImages.get(lastImageURL);
       if (!imgPath) {
         imgPath = path.join(tmpDir, `image_${i}.jpg`);
-        await downloadFile(lastImageURL, imgPath);
+        await safeDownloadFile(lastImageURL, imgPath, 25 * 1024 * 1024);
         downloadedImages.set(lastImageURL, imgPath);
       }
 
       const audioPath = path.join(tmpDir, `audio_${i}.mp3`);
       const outPath = path.join(tmpDir, `segment_${i}.mp4`);
 
-      await downloadFile(scene.audio_url, audioPath);
+      await safeDownloadFile(scene.audio_url, audioPath, 20 * 1024 * 1024);
       await createSegment(imgPath, audioPath, scene.script, outPath, tmpDir, i);
       segmentPaths.push(outPath);
     }
