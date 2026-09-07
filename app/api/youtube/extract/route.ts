@@ -3,6 +3,7 @@ import OpenAI from 'openai';
 import { YoutubeTranscript } from 'youtube-transcript';
 import { YouTubeExtractSchema } from '@/lib/validations';
 import { getAuthenticatedUser, verifyStoryOwnership } from '@/lib/auth-helpers';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
   let storyId: string | undefined;
@@ -12,6 +13,15 @@ export async function POST(request: NextRequest) {
     const { supabase, user } = await getAuthenticatedUser(request);
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Rate limit: max 5 extraction requests per minute per user
+    const rateLimit = checkRateLimit(`yt-extract:${user.id}`, 5, 60 * 1000);
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        { error: 'Too many YouTube extraction requests. Please wait a minute before trying again.' },
+        { status: 429 }
+      );
     }
 
     // 2. Validate input
@@ -128,7 +138,7 @@ ${fullTranscript.substring(0, 15000)}`;
     try {
       const parsedLength = JSON.parse(lengthResult || '{}');
       if (typeof parsedLength.storyLength === 'number') {
-        storyLength = Math.max(70, parsedLength.storyLength);
+        storyLength = Math.min(100, Math.max(70, parsedLength.storyLength));
       }
     } catch (e) {
       console.error('Failed to parse optimal story length, defaulting to 70', e);
