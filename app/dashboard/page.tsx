@@ -69,20 +69,13 @@ export default function DashboardPage() {
 
   const checkYouTubeConnection = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const { data } = await supabase
-        .from('user_settings')
-        .select('youtube_refresh_token, youtube_sub_refresh_token')
-        .eq('user_id', user.id)
-        .single();
-      
-      if (data) {
-        if (data.youtube_refresh_token) setYoutubeMainConnected(true);
-        if (data.youtube_sub_refresh_token) setYoutubeSubConnected(true);
+      const res = await fetch('/api/youtube/status');
+      if (res.ok) {
+        const data = await res.json();
+        setYoutubeMainConnected(Boolean(data.mainConnected));
+        setYoutubeSubConnected(Boolean(data.subConnected));
       }
     } catch (e) {
-      // It might fail if user_settings table doesn't exist yet or no row
       console.error('Error checking YouTube connection:', e);
     }
   };

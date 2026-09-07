@@ -4,20 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import { YouTubeUploadSchema } from '@/lib/validations';
-import { getAuthenticatedUser, verifyStoryOwnership, validateMediaUrl } from '@/lib/auth-helpers';
-
-// Helper to download the video locally with SSRF protection
-async function downloadFile(url: string, outputPath: string) {
-  if (!validateMediaUrl(url)) {
-    throw new Error(`Invalid or disallowed video URL: ${url}`);
-  }
-
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`Failed to fetch ${url}: ${response.statusText}`);
-  
-  const arrayBuffer = await response.arrayBuffer();
-  fs.writeFileSync(outputPath, new Uint8Array(arrayBuffer));
-}
+import { getAuthenticatedUser, verifyStoryOwnership, safeDownloadFile } from '@/lib/auth-helpers';
 
 function sanitizePathComponent(input: string): string {
   return input.replace(/[^a-zA-Z0-9_-]/g, '');
@@ -91,7 +78,7 @@ export async function POST(request: NextRequest) {
     const videoPath = path.join(tmpDir, `video_${safeStoryId}.mp4`);
     
     console.log('Downloading video for YouTube upload...');
-    await downloadFile(story.video_url, videoPath);
+    await safeDownloadFile(story.video_url, videoPath, 150 * 1024 * 1024);
 
     // Compile description from scenes
     const sortedScenes = (story.scenes || []).sort((a: any, b: any) => a.scene_number - b.scene_number);
